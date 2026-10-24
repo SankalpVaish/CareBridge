@@ -27,11 +27,15 @@
  *
  * This module is pure (no React, no I/O) so it is easy to test and reuse.
  */
+import { SPECIALTY_LABELS } from '../../shared/models.js'
 
 /**
  * @typedef {Object} CareSuggestion
  * @property {'emergency'|'suggestion'|'unclear'} kind
  * @property {string} careType          Plain-language care type, e.g. "Heart specialist (cardiology)". Empty for emergency/unclear.
+ * @property {string} specialty         Key from SPECIALTY_LABELS (src/shared/models.js) used to open a matching
+ *                                      search in Find & Trust: 'emergency care' for emergencies, 'primary care'
+ *                                      when unclear, '' when nothing was entered.
  * @property {string} headline          Short "what to do next" line.
  * @property {string[]} notes           Extra plain-language guidance (A-1, A-4).
  * @property {string[]} matchedWords    The patient words we recognised (A-5), for transparency.
@@ -83,6 +87,7 @@ const EMERGENCY_SIGNS = [
  */
 const CARE_RULES = [
   {
+    specialty: 'cardiology',
     careType: 'Heart specialist (cardiology)',
     firstStep: 'a primary-care or general doctor, who can check your heart and refer you if needed',
     words: [
@@ -100,6 +105,7 @@ const CARE_RULES = [
     ],
   },
   {
+    specialty: 'pulmonology',
     careType: 'Lung / breathing specialist (pulmonology)',
     firstStep: 'a primary-care or general doctor first',
     words: [
@@ -113,6 +119,7 @@ const CARE_RULES = [
     ],
   },
   {
+    specialty: 'endocrinology',
     careType: 'Diabetes / hormone specialist (endocrinology)',
     firstStep: 'a primary-care or general doctor, who can run blood tests first',
     words: [
@@ -128,6 +135,7 @@ const CARE_RULES = [
     ],
   },
   {
+    specialty: 'orthopedics',
     careType: 'Bone & joint specialist (orthopedics)',
     firstStep: 'a primary-care or general doctor first, unless it followed an injury',
     words: [
@@ -142,6 +150,7 @@ const CARE_RULES = [
     ],
   },
   {
+    specialty: 'dermatology',
     careType: 'Skin specialist (dermatology)',
     firstStep: 'a primary-care or general doctor, who can look and refer if needed',
     words: [
@@ -154,6 +163,7 @@ const CARE_RULES = [
     ],
   },
   {
+    specialty: 'obgyn',
     careType: "Women's health specialist (obstetrics & gynaecology)",
     firstStep: 'a primary-care doctor or a women’s health clinic',
     words: [
@@ -167,6 +177,7 @@ const CARE_RULES = [
     ],
   },
   {
+    specialty: 'ophthalmology',
     careType: 'Eye specialist (ophthalmology)',
     firstStep: 'a primary-care doctor or an eye clinic',
     words: [
@@ -179,6 +190,7 @@ const CARE_RULES = [
     ],
   },
   {
+    specialty: 'mental health',
     careType: 'Mental health support',
     firstStep: 'a primary-care doctor or a counsellor you trust',
     words: [
@@ -215,6 +227,7 @@ export function suggestCareType(text) {
     return {
       kind: 'unclear',
       careType: '',
+      specialty: '',
       headline: 'Tell us what you are feeling, in your own words.',
       notes: [
         'For example: “chest feels tight when I walk uphill” or “cough for three weeks”.',
@@ -229,6 +242,7 @@ export function suggestCareType(text) {
     return {
       kind: 'emergency',
       careType: '',
+      specialty: 'emergency care',
       headline: 'This may be an emergency. Call emergency services now.',
       notes: [
         'Do not wait and do not drive yourself if you can avoid it.',
@@ -253,6 +267,7 @@ export function suggestCareType(text) {
     return {
       kind: 'suggestion',
       careType: primary.careType,
+      specialty: primary.specialty,
       headline: `This sounds like it may need ${primary.careType}.`,
       notes: [
         `A good first step is to see ${primary.firstStep}.`,
@@ -267,6 +282,7 @@ export function suggestCareType(text) {
   return {
     kind: 'unclear',
     careType: '',
+    specialty: 'primary care',
     headline: 'We can’t match this to a specific kind of care.',
     notes: [
       'That’s okay. A primary-care or general doctor is a safe first stop — they can check and point you to a specialist if you need one.',
@@ -285,6 +301,28 @@ export const EXAMPLE_SYMPTOMS = [
   'A lump in my breast',
   'Sudden slurred speech', // demonstrates the emergency path
 ]
+
+/**
+ * Works out the specialty key from free-text care type (e.g. the AI's answer).
+ * Matches the key itself ("cardiology") or its full label; falls back to
+ * primary care, which is always a safe first step.
+ *
+ * @param {string} careType
+ * @returns {string}  A key from SPECIALTY_LABELS
+ */
+export function specialtyFromCareType(careType) {
+  const text = normalise(careType)
+  if (!text) return 'primary care'
+  // Specialists only (primary care is the fallback), and longest keys first so
+  // "surgical oncology" wins over "oncology".
+  const keys = Object.keys(SPECIALTY_LABELS)
+    .filter((k) => k !== 'primary care')
+    .sort((a, b) => b.length - a.length)
+  return (
+    keys.find((k) => text.includes(k) || text.includes(normalise(SPECIALTY_LABELS[k]))) ??
+    'primary care'
+  )
+}
 
 function dedupe(arr) {
   return Array.from(new Set(arr))

@@ -3,11 +3,14 @@
  * cost/coverage view from mock data. See TODO.md for what's left to build
  * (research questions A-1..A-17 in README.md).
  */
-import { useEffect, useState } from 'react'
-import { PageHeader, Card, Badge, money } from '../../shared/ui.jsx'
-import { demoPatient, providers, schemes, byId } from '../../data/mockData.js'
+import { useEffect, useMemo, useState } from 'react'
+import { PageHeader, Card, money } from '../../shared/ui.jsx'
+import { demoPatient, schemes, byId } from '../../data/mockData.js'
 import { useAuth } from '../../app/AuthContext.jsx'
-import { estimateCost } from './costEstimator.js'
+import { estimateCost, visitCostItems } from './costEstimator.js'
+import { matchAid } from './aid.js'
+import AidPanel from './AidPanel.jsx'
+import CoverageCheck from './CoverageCheck.jsx'
 import PatientTriage from './PatientTriage.jsx'
 import ChwTriage from './ChwTriage.jsx'
 
@@ -35,8 +38,27 @@ export default function CarePage() {
 
   // Use the cheapest verified cardiology provider for the demo estimate.
   const provider = byId.provider('prov-cardio-county')
-  const estimate = estimateCost(demoPatient, provider)
-  const patientSchemes = demoPatient.schemeIds.map(byId.scheme)
+
+  // A plan found by "Check my coverage" is added to Maria's coverage for the
+  // estimate (one checked plan at a time; nothing is saved).
+  const [checkedPlan, setCheckedPlan] = useState(null)
+  const patient = useMemo(() => {
+    if (!checkedPlan || demoPatient.schemeIds.includes(checkedPlan.scheme.id)) return demoPatient
+    const { record, scheme } = checkedPlan
+    return {
+      ...demoPatient,
+      schemeIds: [scheme.id, ...demoPatient.schemeIds],
+      memberCoverage: {
+        ...demoPatient.memberCoverage,
+        [scheme.id]: { memberId: record.memberId, deductibleMetUsd: record.deductibleMetUsd },
+      },
+    }
+  }, [checkedPlan])
+
+  const estimate = estimateCost(patient, provider)
+  const aid = matchAid(schemes, patient, provider)
+  const schemeName = (id) => byId.scheme(id)?.name ?? id
+  const addedPlan = patient === demoPatient ? null : checkedPlan.scheme
 
   return (
     <div>
@@ -55,14 +77,29 @@ export default function CarePage() {
             <ChwTriage />
           </div>
         ) : (
-          <PatientTriage initialText={demoPatient.primarySymptom} />
+          <PatientTriage
+            initialText={demoPatient.primarySymptom}
+            patientAge={demoPatient.age}
+          />
         )}
 
-        {/* Cost estimate (ties to O8, A-7, A-8) */}
+        {/* Cost estimate (ties to O5, O6, A-11, A-12) */}
         <Card>
           <h2 className="font-semibold text-slate-900">
             Estimated cost at {provider.name}
           </h2>
+          {addedPlan && (
+            <p className="mt-1 flex flex-wrap items-center gap-2 text-xs text-slate-600">
+              Including {addedPlan.name} from your coverage check.
+              <button
+                type="button"
+                onClick={() => setCheckedPlan(null)}
+                className="font-medium text-brand-600 hover:underline"
+              >
+                Remove
+              </button>
+            </p>
+          )}
           <dl className="mt-3 space-y-1 text-sm">
             <Row label="Consultation" value={money(estimate.consultUsd)} />
             <Row label="Tests" value={money(estimate.testsUsd)} />
@@ -70,47 +107,55 @@ export default function CarePage() {
             <Row label="Lodging" value={money(estimate.lodgingUsd)} />
             <Row label="Lost wages" value={money(estimate.lostWagesUsd)} />
             <div className="my-2 border-t border-slate-200" />
-            <Row label="Covered by schemes" value={`– ${money(estimate.coveredUsd)}`} tone="green" />
-            <Row
-              label="Out of pocket"
-              value={money(estimate.outOfPocketUsd)}
-              strong
-            />
+            <Row label="Total" value={money(estimate.grossUsd)} />
+            {estimate.coveredBy.map((c) => (
+              <Row
+                key={c.schemeId}
+                label={`Paid by ${schemeName(c.schemeId)}`}
+                value={`– ${money(c.amountUsd)}`}
+                tone="green"
+              />
+            ))}
+            <Row label="Out of pocket now" value={money(estimate.outOfPocketUsd)} strong />
           </dl>
+
+          {/* What applying would save (O6) */}
+          {estimate.couldSave.length > 0 && (
+            <div className="mt-3 rounded-lg bg-brand-50 p-3 text-sm">
+              <p className="font-medium text-slate-900">
+                Apply for {estimate.couldSave.length === 1 ? 'this' : 'these'} and pay about{' '}
+                {money(estimate.outOfPocketIfAppliedUsd)}
+              </p>
+              <ul className="mt-1 space-y-0.5 text-slate-700">
+                {estimate.couldSave.map((c) => (
+                  <li key={c.schemeId}>
+                    {schemeName(c.schemeId)}: saves about {money(c.amountUsd)}
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-1 text-xs text-slate-500">See “How to apply” below.</p>
+            </div>
+          )}
+
           <p className="mt-3 text-xs text-slate-500">
             Monthly budget is {money(demoPatient.monthlyBudgetUsd)} —{' '}
             {estimate.outOfPocketUsd > demoPatient.monthlyBudgetUsd ? (
-              <span className="text-red-600">over budget (O8, A-13)</span>
+              <span className="text-red-600">over budget (O5, A-17)</span>
             ) : (
               <span className="text-green-600">within budget</span>
             )}
           </p>
         </Card>
 
-        {/* Coverage & aid (ties to O9, A-9..A-12) */}
-        <Card className="lg:col-span-2">
-          <h2 className="font-semibold text-slate-900">Coverage & financial aid</h2>
-          <div className="mt-3 grid gap-3 sm:grid-cols-2">
-            {schemes.map((s) => {
-              const held = demoPatient.schemeIds.includes(s.id)
-              return (
-                <div key={s.id} className="rounded-lg border border-slate-200 p-3">
-                  <div className="flex items-center justify-between">
-                    <p className="font-medium text-slate-900">{s.name}</p>
-                    <Badge tone={held ? 'green' : 'slate'}>
-                      {held ? 'Enrolled' : 'May qualify'}
-                    </Badge>
-                  </div>
-                  <p className="mt-1 text-sm text-slate-600">{s.notes}</p>
-                  <p className="mt-2 text-xs text-slate-500">
-                    Covers up to {s.coveragePct}% · Needs:{' '}
-                    {s.requiredDocs.join(', ')}
-                  </p>
-                </div>
-              )
-            })}
-          </div>
-        </Card>
+        {/* What am I covered for? (ties to A-13, A-14) */}
+        <CoverageCheck
+          provider={provider}
+          items={visitCostItems(patient, provider)}
+          onFound={setCheckedPlan}
+        />
+
+        {/* Coverage & aid: what she qualifies for and how to apply (ties to O6, A-13..A-16) */}
+        <AidPanel matches={aid} estimate={estimate} provider={provider} />
       </div>
 
     </div>

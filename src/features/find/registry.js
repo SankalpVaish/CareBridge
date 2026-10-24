@@ -21,6 +21,7 @@ export const REGISTRY_RECORDS = [
   { licenseId: 'H-004218', name: 'Regional Heart Center', registry: 'State hospital license registry', status: 'active', expiresOn: '2027-06-30' },
   { licenseId: 'MD-118734', name: 'County Cardiology Clinic', registry: 'State Medical Board', status: 'active', expiresOn: '2027-03-31' },
   { licenseId: 'MD-093321', name: 'Hometown Family Practice', registry: 'State Medical Board', status: 'active', expiresOn: '2027-01-31' },
+  { licenseId: 'H-003377', name: 'Cedar Falls Community Hospital', registry: 'State hospital license registry', status: 'active', expiresOn: '2027-08-31' },
   { licenseId: 'H-005902', name: 'University Cancer Institute', registry: 'State hospital license registry', status: 'active', expiresOn: '2027-09-30' },
   { licenseId: 'MD-121456', name: 'Lakeside Oncology Associates', registry: 'State Medical Board', status: 'active', expiresOn: '2027-05-31' },
   { licenseId: 'MD-077120', name: 'Hope Natural Cancer Clinic', registry: 'State Medical Board', status: 'expired', expiresOn: '2025-12-31' },

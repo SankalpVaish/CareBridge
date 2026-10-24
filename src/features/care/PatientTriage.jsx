@@ -10,7 +10,7 @@ import { api } from '../../shared/api.js'
 import { useAuth } from '../../app/AuthContext.jsx'
 import SymptomChecker from './SymptomChecker.jsx'
 
-export default function PatientTriage({ initialText }) {
+export default function PatientTriage({ initialText, patientAge }) {
   const { user } = useAuth()
   const [checked, setChecked] = useState(null) // { result, text }
   const [share, setShare] = useState({ state: 'idle' }) // idle | sharing | shared | error
@@ -37,7 +37,7 @@ export default function PatientTriage({ initialText }) {
 
   return (
     <div className="space-y-3">
-      <SymptomChecker initialText={initialText} onResult={onResult} />
+      <SymptomChecker initialText={initialText} patientAge={patientAge} onResult={onResult} />
 
       {checked && (
         <Card>

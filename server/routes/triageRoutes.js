@@ -16,6 +16,7 @@ const router = Router()
 router.use(requireAuth)
 
 const RESULT_KINDS = ['emergency', 'suggestion', 'unclear']
+const URGENCIES = ['emergency', 'within_days', 'within_weeks', 'routine']
 const READING_KEYS = ['temperature', 'bloodPressure', 'pulse', 'weight']
 const MAX_TEXT = 2000
 
@@ -64,6 +65,8 @@ function cleanResult(r) {
   return {
     kind: r.kind,
     careType: typeof r.careType === 'string' ? r.careType : '',
+    specialty: typeof r.specialty === 'string' ? r.specialty.slice(0, 40) : '',
+    urgency: URGENCIES.includes(r.urgency) ? r.urgency : '',
     headline: r.headline,
     notes: strings(r.notes),
     matchedWords: strings(r.matchedWords),

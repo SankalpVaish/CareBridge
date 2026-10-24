@@ -13,22 +13,35 @@
  * (not modified). No shared models or mock data are changed.
  */
 import { useEffect, useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { Card, Badge, Button } from '../../shared/ui.jsx'
+import EmergencyHelp from '../find/EmergencyHelp.jsx'
 import { EXAMPLE_SYMPTOMS } from './symptomChecker.js'
-import { suggestCareTypeLLM, hasLlmKey } from './llmSymptomChecker.js'
+import {
+  suggestCareTypeLLM,
+  hasLlmKey,
+  DURATION_OPTIONS,
+  WORSENING_OPTIONS,
+} from './llmSymptomChecker.js'
+import { SPECIALTY_LABELS, URGENCY_LABELS } from '../../shared/models.js'
 
 /**
  * @param {Object} props
  * @param {string} [props.initialText]  Seed text (e.g. the demo patient's words).
  * @param {string} [props.title]
+ * @param {number} [props.patientAge]   Passed to the AI so it can judge how soon to be seen.
  * @param {(result: object|null, text: string) => void} [props.onResult]  Called after each check, and with null on Clear.
  */
 export default function SymptomChecker({
   initialText = '',
   title = 'What are you feeling?',
+  patientAge,
   onResult,
 }) {
   const [text, setText] = useState(initialText)
+  // Optional follow-up questions (A-1, A-3): how long, and getting worse?
+  const [duration, setDuration] = useState('')
+  const [worsening, setWorsening] = useState('')
   const [result, setResult] = useState(null)
   const [loading, setLoading] = useState(false)
   const abortRef = useRef(null)
@@ -53,7 +66,10 @@ export default function SymptomChecker({
 
     setLoading(true)
     try {
-      const r = await suggestCareTypeLLM(query, { signal: controller.signal })
+      const r = await suggestCareTypeLLM(query, {
+        signal: controller.signal,
+        context: { age: patientAge, duration, worsening },
+      })
       setResult(r)
       onResult?.(r, query)
     } catch (err) {
@@ -61,6 +77,8 @@ export default function SymptomChecker({
         const fallback = {
           kind: 'unclear',
           careType: '',
+          specialty: 'primary care',
+          urgency: '',
           headline: 'Something went wrong. A general doctor is a safe first step.',
           notes: [],
           matchedWords: [],
@@ -109,6 +127,20 @@ export default function SymptomChecker({
           placeholder="e.g. chest feels tight when I walk uphill"
           className="w-full resize-none rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-care focus:outline-none focus:ring-1 focus:ring-care"
         />
+        <div className="mt-2 grid gap-2 sm:grid-cols-2">
+          <ChoiceSelect
+            label="How long have you had this?"
+            value={duration}
+            onChange={setDuration}
+            options={DURATION_OPTIONS}
+          />
+          <ChoiceSelect
+            label="Is it getting worse?"
+            value={worsening}
+            onChange={setWorsening}
+            options={WORSENING_OPTIONS}
+          />
+        </div>
         <div className="mt-2 flex flex-wrap items-center gap-2">
           <Button type="submit">{loading ? 'Checking…' : 'Check'}</Button>
           {text && (
@@ -118,6 +150,8 @@ export default function SymptomChecker({
               onClick={() => {
                 abortRef.current?.abort()
                 setText('')
+                setDuration('')
+                setWorsening('')
                 setResult(null)
                 setLoading(false)
                 onResult?.(null, '')
@@ -171,6 +205,46 @@ function SourceBadge({ source }) {
   return null
 }
 
+/** Optional follow-up question as a dropdown; '' means not answered. */
+function ChoiceSelect({ label, value, onChange, options }) {
+  return (
+    <label className="block text-xs text-slate-600">
+      {label}
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="mt-1 w-full rounded-lg border border-slate-300 px-2 py-1.5 text-sm text-slate-900"
+      >
+        <option value="">Choose (optional)</option>
+        {Object.entries(options).map(([key, text]) => (
+          <option key={key} value={key}>
+            {text}
+          </option>
+        ))}
+      </select>
+    </label>
+  )
+}
+
+/** Hand-off to Find & Trust for the suggested kind of care (O1 → O2). */
+function FindCareLink({ specialty, urgency }) {
+  if (!specialty || specialty === 'emergency care') return null
+  const label =
+    specialty === 'primary care'
+      ? 'a primary-care doctor'
+      : (SPECIALTY_LABELS[specialty] ?? specialty).toLowerCase()
+  const params = new URLSearchParams({ specialty })
+  if (urgency) params.set('urgency', urgency)
+  return (
+    <Link
+      to={`/find?${params}`}
+      className="mt-3 inline-block rounded-lg bg-find px-4 py-2 text-sm font-medium text-white hover:opacity-90"
+    >
+      Find {label} near you →
+    </Link>
+  )
+}
+
 function ResultPanel({ result }) {
   if (result.kind === 'emergency') {
     return (
@@ -182,6 +256,7 @@ function ResultPanel({ result }) {
           <span aria-hidden="true" className="text-lg">🚨</span>
           <p className="font-semibold text-red-800">{result.headline}</p>
         </div>
+        <EmergencyHelp />
         <ul className="mt-2 list-disc pl-6 text-sm text-red-800">
           {result.notes.map((n) => (
             <li key={n}>{n}</li>
@@ -215,6 +290,14 @@ function ResultPanel({ result }) {
           </span>
         </p>
       )}
+      {URGENCY_LABELS[result.urgency] && (
+        <p className="mt-1 text-sm">
+          How soon:{' '}
+          <span className="font-semibold text-slate-900">
+            {URGENCY_LABELS[result.urgency]}
+          </span>
+        </p>
+      )}
       {result.notes?.length > 0 && (
         <ul className="mt-2 list-disc pl-5 text-sm">
           {result.notes.map((n) => (
@@ -227,6 +310,7 @@ function ResultPanel({ result }) {
           Matched your words: {result.matchedWords.join(', ')}
         </p>
       )}
+      <FindCareLink specialty={result.specialty} urgency={result.urgency} />
       <p className="mt-2 text-xs text-slate-500">
         Guidance only — not a diagnosis. Clinical decisions stay with a
         qualified clinician (X-1).

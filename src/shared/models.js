@@ -31,6 +31,13 @@
  * @property {string[]} schemeIds         Insurance / govt schemes held (ties to A-13)
  * @property {string[]} transport         Ways the patient can travel, e.g. ['community shuttle'] (ties to B-5)
  * @property {number|null} maxTravelMiles  Furthest the patient can travel one way; null = no limit given (ties to B-3)
+ * @property {string|null} state           US state code, e.g. 'IA'; null = not given (ties to A-13, O6)
+ * @property {number|null} householdSize   People in the household; null = not given (ties to A-15)
+ * @property {number|null} monthlyIncomeUsd  Household income before tax; null = not given (ties to A-15)
+ * @property {boolean|null} employed       Loses wages when travelling for care; null = not given (ties to A-11)
+ * @property {string[]} documentsHeld      Proof the patient already has, e.g. ['State ID'] (ties to A-16)
+ * @property {Object<string, {memberId: string, deductibleMetUsd: number}>} memberCoverage
+ *           Per held scheme id: member number and how much of this year's deductible is paid (ties to A-13)
  * @property {string} [primarySymptom]    Free-text symptom in patient words (ties to A-5)
  */
 
@@ -65,7 +72,39 @@
  * @property {boolean} offersTelehealth   Video follow-ups can save repeat trips (ties to O3)
  * @property {string[]} acceptedSchemeIds Schemes billed directly (ties to A-14)
  * @property {number} consultFeeUsd
+ * @property {boolean} hasEmergencyDepartment  Open for emergencies (ties to A-3, X-2)
  */
+
+/**
+ * How soon to be seen, most urgent first. Shared by the symptom checker (A),
+ * which sets it, and Find & Trust (B), which shifts its ranking weights for it.
+ */
+export const URGENCY_LABELS = {
+  emergency: 'Emergency: call for help now',
+  within_days: 'Be seen within a few days',
+  within_weeks: 'Be seen within 1–2 weeks',
+  routine: 'Book the next convenient appointment',
+}
+
+/**
+ * Specialty keys shared by the symptom checker (A) and Find & Trust (B).
+ * A care suggestion's `specialty` and every entry in Provider.specialties use
+ * these keys, so a triage result can open a matching provider search.
+ */
+export const SPECIALTY_LABELS = {
+  'primary care': 'Primary care / general doctor',
+  cardiology: 'Heart specialist (cardiology)',
+  pulmonology: 'Lung / breathing specialist (pulmonology)',
+  endocrinology: 'Diabetes / hormone specialist (endocrinology)',
+  orthopedics: 'Bone & joint specialist (orthopedics)',
+  dermatology: 'Skin specialist (dermatology)',
+  obgyn: "Women's health specialist (obstetrics & gynaecology)",
+  ophthalmology: 'Eye specialist (ophthalmology)',
+  'mental health': 'Mental health support',
+  oncology: 'Cancer specialist (oncology)',
+  'surgical oncology': 'Cancer surgeon (surgical oncology)',
+  'emergency care': 'Emergency department',
+}
 
 /**
  * @typedef {'patient'|'pcp'|'specialist'|'chw'} UserRole
@@ -118,12 +157,50 @@ export const USER_ROLE_LABELS = {
  */
 
 /**
+ * Cost items a scheme can pay for. Same names as the CostEstimate fields
+ * without the "Usd" suffix.
+ * @typedef {'consult'|'tests'|'travel'|'lodging'|'lostWages'} CostItem
+ */
+
+/**
+ * One eligibility condition (ties to O6, A-13..A-16). `field` is a key from
+ * the eligibility context built in src/features/care/aid.js, e.g.
+ * 'incomePctOfPoverty', 'age', 'state', 'travelMiles', 'heldSchemeIds'.
+ * @typedef {Object} EligibilityRule
+ * @property {string} field
+ * @property {'eq'|'in'|'lte'|'gte'|'has'} op   'has' = the field is a list that contains `value`
+ * @property {*} value
+ * @property {string} label               Plain-language requirement, e.g. "Age 65 or older"
+ */
+
+/**
+ * Terms of a private insurance plan (work or Marketplace plan). Only applies
+ * to the items in Scheme.covers. In network, the consultation costs the
+ * copay; anything else goes toward the deductible first, then the patient
+ * pays `coinsurancePct`. Out of network, the plan pays
+ * `outOfNetworkCoveragePct` after the deductible (0 = not covered).
+ * @typedef {Object} InsurancePlan
+ * @property {number} deductibleUsd           Patient pays this much per year before the plan shares costs
+ * @property {number|null} consultCopayUsd    Fixed in-network specialist visit cost; null = visit goes to the deductible
+ * @property {number} coinsurancePct          Patient's share after the deductible, in network (0..100)
+ * @property {number} outOfNetworkCoveragePct Plan's share out of network after the deductible (0..100)
+ * @property {string[]} inNetworkProviderIds  Providers in the plan's network
+ * @property {CostItem[]} preauthItems        Items the plan must approve before care
+ */
+
+/**
  * @typedef {Object} Scheme
  * @property {string} id
  * @property {string} name
  * @property {'insurance'|'government'|'charity'} kind
- * @property {number} coveragePct         Share of eligible costs covered (0..100)
- * @property {string[]} requiredDocs      Proof needed to claim (ties to A-16)
+ * @property {CostItem[]} covers          Which cost items it pays for (ties to A-11)
+ * @property {number} coveragePct         Share of those items covered (0..100)
+ * @property {number|null} maxAmountUsd   Cap per visit; null = no cap
+ * @property {boolean} billedByProvider   true = only usable where the provider accepts it: Provider.acceptedSchemeIds, or plan.inNetworkProviderIds for private plans (ties to A-14)
+ * @property {InsurancePlan|null} plan    Private insurance terms; null for programmes that just pay a share
+ * @property {EligibilityRule[]} eligibility  All must be met (ties to A-15)
+ * @property {string[]} requiredDocs      Proof needed to apply or claim (ties to A-16)
+ * @property {{ steps: string[], where: string, contact: string, typicalWait: string }} howToApply
  * @property {string} notes
  */
 
@@ -153,8 +230,12 @@ export const USER_ROLE_LABELS = {
  * @property {number} travelUsd          (ties to B-4, B-7)
  * @property {number} lodgingUsd
  * @property {number} lostWagesUsd
- * @property {number} coveredUsd         Paid by schemes
- * @property {number} outOfPocketUsd     What the family actually pays (ties to O5, A-11)
+ * @property {number} grossUsd           Total before any help
+ * @property {number} coveredUsd         Paid by schemes the patient is already enrolled in
+ * @property {number} outOfPocketUsd     What the family actually pays today (ties to O5, A-11)
+ * @property {{ schemeId: string, amountUsd: number }[]} coveredBy   Enrolled schemes and what each pays
+ * @property {{ schemeId: string, amountUsd: number }[]} couldSave   Schemes the patient qualifies for but hasn't applied to (ties to O6)
+ * @property {number} outOfPocketIfAppliedUsd  Out of pocket after applying for every scheme in couldSave
  */
 
 // ---------------------------------------------------------------------------
@@ -176,6 +257,12 @@ export function makePatient(p = {}) {
     schemeIds: p.schemeIds ?? [],
     transport: p.transport ?? [],
     maxTravelMiles: p.maxTravelMiles ?? null,
+    state: p.state ?? null,
+    householdSize: p.householdSize ?? null,
+    monthlyIncomeUsd: p.monthlyIncomeUsd ?? null,
+    employed: p.employed ?? null,
+    documentsHeld: p.documentsHeld ?? [],
+    memberCoverage: p.memberCoverage ?? {},
     primarySymptom: p.primarySymptom ?? '',
   }
 }
@@ -201,6 +288,7 @@ export function makeProvider(p = {}) {
     fraudSignals: p.fraudSignals ?? [],
     languages: p.languages ?? [],
     loopClosureRate: p.loopClosureRate ?? null,
+    hasEmergencyDepartment: p.hasEmergencyDepartment ?? false,
     rating: p.rating ?? 0,
     reviewCount: p.reviewCount ?? 0,
     waitDays: p.waitDays ?? 0,
@@ -216,8 +304,30 @@ export function makeScheme(s = {}) {
     id: s.id ?? crypto.randomUUID(),
     name: s.name ?? 'Unknown scheme',
     kind: s.kind ?? 'insurance',
+    covers: s.covers ?? [],
     coveragePct: s.coveragePct ?? 0,
+    maxAmountUsd: s.maxAmountUsd ?? null,
+    billedByProvider: s.billedByProvider ?? false,
+    plan: s.plan
+      ? {
+          deductibleUsd: 0,
+          consultCopayUsd: null,
+          coinsurancePct: 0,
+          outOfNetworkCoveragePct: 0,
+          inNetworkProviderIds: [],
+          preauthItems: [],
+          ...s.plan,
+        }
+      : null,
+    eligibility: s.eligibility ?? [],
     requiredDocs: s.requiredDocs ?? [],
+    howToApply: {
+      steps: [],
+      where: '',
+      contact: '',
+      typicalWait: '',
+      ...s.howToApply,
+    },
     notes: s.notes ?? '',
   }
 }

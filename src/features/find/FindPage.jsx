@@ -5,11 +5,17 @@
  * build (research questions B-1..B-14 in README.md).
  */
 import { useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { PageHeader, Card } from '../../shared/ui.jsx'
 import { providers, demoPatient, byId } from '../../data/mockData.js'
+import { SPECIALTY_LABELS, URGENCY_LABELS } from '../../shared/models.js'
 import { rankProviders } from './ranking.js'
-import { searchProviders, matchedServices, isWithinTravel } from './search.js'
+import {
+  searchProviders,
+  matchedServices,
+  isWithinTravel,
+  nearestPrimaryCare,
+} from './search.js'
 import { TrustBadge, VerificationLine, WarningSigns } from './TrustPanel.jsx'
 import HowWeRank from './HowWeRank.jsx'
 
@@ -29,7 +35,12 @@ const REASON_STYLES = {
 
 export default function FindPage() {
   const patient = demoPatient
-  const [query, setQuery] = useState('cardiology')
+  // Arriving from the symptom checker: /find?specialty=cardiology (O1 hand-off).
+  const [searchParams] = useSearchParams()
+  const fromCheck = searchParams.get('specialty')
+  const urgencyParam = searchParams.get('urgency')
+  const urgency = URGENCY_LABELS[urgencyParam] ? urgencyParam : 'routine'
+  const [query, setQuery] = useState(fromCheck ?? 'cardiology')
   // On by default: unverified listings are hidden unless the user asks (PLAN §6, §9).
   const [verifiedOnly, setVerifiedOnly] = useState(true)
   const [schemeOnly, setSchemeOnly] = useState(false)
@@ -50,12 +61,12 @@ export default function FindPage() {
     const shown = verifiedOnly ? candidates.filter(isVerified) : candidates
 
     return {
-      results: rankProviders(shown, patient),
+      results: rankProviders(shown, patient, { urgency }),
       widened,
       hiddenUnverified: candidates.length - shown.length,
       hiddenFar: widened ? 0 : outOfRange.length,
     }
-  }, [query, verifiedOnly, schemeOnly, maxMiles, patient])
+  }, [query, verifiedOnly, schemeOnly, maxMiles, patient, urgency])
 
   const schemeNames = patient.schemeIds.map((id) => byId.scheme(id)?.name ?? id).join(', ')
 
@@ -66,6 +77,8 @@ export default function FindPage() {
         subtitle="Find the nearest centre that offers the care Maria needs, and check it’s legitimate."
         accent="find"
       />
+
+      {fromCheck && <FromSymptomCheck specialty={fromCheck} urgency={urgencyParam} />}
 
       {/* Search controls */}
       <Card className="mb-5">
@@ -247,12 +260,56 @@ export default function FindPage() {
         })}
         {view.results.length === 0 && (
           <p className="text-sm text-slate-500">
-            No providers match. Try a wider travel distance or a different search.
+            No providers in our list match. Try a wider travel distance or a
+            different search, or start with a primary-care doctor, who can refer you.
           </p>
         )}
       </div>
 
       <HowWeRank open={showHowWeRank} onClose={() => setShowHowWeRank(false)} />
     </div>
+  )
+}
+
+/**
+ * Shown when the user came from the symptom checker. Every suggestion says to
+ * see a primary-care doctor first, so the nearest verified one is shown here
+ * (A-4: avoid going to the wrong provider first).
+ */
+function FromSymptomCheck({ specialty, urgency }) {
+  const label = SPECIALTY_LABELS[specialty] ?? specialty
+  const pcp = specialty === 'primary care' ? null : nearestPrimaryCare(providers)
+  const soon = urgency === 'within_days'
+
+  return (
+    <Card className="mb-5 border-find/40 bg-find/5">
+      <p className="text-sm text-slate-700">
+        From your symptom check: <span className="font-semibold text-slate-900">{label}</span>
+      </p>
+      {URGENCY_LABELS[urgency] && (
+        <p className="mt-1 text-sm text-slate-700">
+          How soon:{' '}
+          <span className={`font-semibold ${soon ? 'text-amber-700' : 'text-slate-900'}`}>
+            {URGENCY_LABELS[urgency]}
+          </span>
+          {soon && ' · results favour shorter waits and less travel'}
+        </p>
+      )}
+      {pcp && (
+        <div className="mt-3 rounded-lg border border-slate-200 bg-white p-3 text-sm">
+          <p className="font-medium text-slate-900">
+            First step: see a primary-care doctor
+          </p>
+          <p className="mt-1 text-slate-600">
+            Nearest verified: <span className="font-medium">{pcp.name}</span>, {pcp.location} (
+            {pcp.distanceMiles} mi) · typical wait {pcp.waitDays} days. They can check you and
+            send a referral if you need a specialist.
+          </p>
+        </div>
+      )}
+      <p className="mt-2 text-xs text-slate-500">
+        This is guidance, not a diagnosis. Your doctor decides whether you need a specialist.
+      </p>
+    </Card>
   )
 }
