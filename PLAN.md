@@ -32,12 +32,12 @@ All three people work through §1–4 together in the first hour. After that, ea
 ### 1.2 The gaps we build on
 | Gap | README observations | Priority |
 |---|---|---|
-| **G1** Referral loop: clinic → specialist → findings back to the clinic | O11, O14 | **Must-have** |
-| **G2** Patients find out which schemes and aid they qualify for, and the full cost | O8, O9 | **Must-have** |
+| **G1** Referral loop: clinic → specialist → findings back to the clinic | O7, O8 | **Must-have** |
+| **G2** Patients find out which schemes and aid they qualify for, and the full cost | O5, O6 | **Must-have** |
 | **G3** Dual-mode triage chatbot: how urgent it is and where to go first | O1 | **Must-have** |
-| **G4** Rural logistics: service not available locally, travel, language, poor connectivity | O6, O12, O13 | **Must-have** |
-| **G5** Trust: verified providers, rankings nobody can buy | O4, O7 | **Must-have** |
-| **G6** Medicine changes explained across doctors | O10 | Stretch |
+| **G4** Rural logistics: service not available locally, travel, language, poor connectivity | O2, O3 | **Must-have** |
+| **G5** Trust: verified providers, rankings nobody can buy | O4 | **Must-have** |
+| **G6** Medicine changes explained across doctors | O9 | Stretch |
 
 ### 1.3 What we deliberately do NOT build
 Practo and similar products already do these well, so they stay minimal or mocked:
@@ -366,7 +366,7 @@ Implementation notes:
 ## 5. Workstream A, Person 1: Assess and Afford
 
 **Mission:** turn "something is wrong" into a safe, clear next step in the person's own language, and show what it will really cost and who can help pay.
-**Gaps:** G3 (dual-mode chatbot) and G2 (schemes, aid, full cost). **README:** O1, O8, O9.
+**Gaps:** G3 (dual-mode chatbot) and G2 (schemes, aid, full cost). **README:** O1, O5, O6, O10.
 
 ### Screens
 | ID | Screen | Key elements |
@@ -413,7 +413,7 @@ Implementation notes:
 ## 6. Workstream B, Person 2: Match and Get There
 
 **Mission:** find centres that *actually* offer what's needed, can be trusted, and can be reached, then plan the trip.
-**Gaps:** G4 (logistics, service not local) and G5 (trust, rankings nobody can buy). **README:** O2–O7, O12.
+**Gaps:** G4 (logistics, service not local) and G5 (trust, rankings nobody can buy). **README:** O2, O3, O4.
 
 ### Screens
 | ID | Screen | Key elements |
@@ -464,7 +464,7 @@ Implementation notes:
 ## 7. Workstream C, Person 3: Refer and Close the Loop
 
 **Mission:** make sure no referral gets lost, and that the specialist's findings return to the clinic, the CHW, and the patient.
-**Gaps:** G1 (referral loop), with G6 (explaining medicine changes) as a stretch. **README:** O10, O11, O14, O15.
+**Gaps:** G1 (referral loop), with G6 (explaining medicine changes) as a stretch. **README:** O7, O8, O9, O10.
 
 ### Screens
 | ID | Screen | Key elements |
