@@ -6,6 +6,7 @@
  * Registry API) instead of this seed list. Keep these records in step with the
  * `verification` field of each provider in src/data/mockData.js.
  */
+import { doctors } from '../../data/mockData.js'
 
 /**
  * @typedef {Object} RegistryRecord
@@ -25,6 +26,14 @@ export const REGISTRY_RECORDS = [
   { licenseId: 'H-005902', name: 'University Cancer Institute', registry: 'State hospital license registry', status: 'active', expiresOn: '2027-09-30' },
   { licenseId: 'MD-121456', name: 'Lakeside Oncology Associates', registry: 'State Medical Board', status: 'active', expiresOn: '2027-05-31' },
   { licenseId: 'MD-077120', name: 'Hope Natural Cancer Clinic', registry: 'State Medical Board', status: 'expired', expiresOn: '2025-12-31' },
+  // Doctors (see `doctors` in mockData.js)
+  ...doctors.map((d) => ({
+    licenseId: d.license.licenseId,
+    name: d.name,
+    registry: d.license.registry,
+    status: d.license.status === 'verified' ? 'active' : 'expired',
+    expiresOn: '2027-12-31',
+  })),
 ]
 
 /**

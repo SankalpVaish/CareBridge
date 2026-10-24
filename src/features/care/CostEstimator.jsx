@@ -70,7 +70,7 @@ export default function CostEstimator({ patient, provider }) {
         <h2 className="font-semibold text-slate-900">
           {t('cost.title')} · {provider?.name}
         </h2>
-        <Badge tone="slate">A-7 / A-8</Badge>
+
       </div>
       <div className="mt-1 flex items-start gap-1">
         <p className="text-sm text-slate-600">{t('cost.intro')}</p>

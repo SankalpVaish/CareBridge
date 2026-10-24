@@ -205,7 +205,8 @@ export const USER_ROLE_LABELS = {
  */
 
 /**
- * @typedef {'requested'|'info_sent'|'accepted'|'scheduled'|'seen'|'followed_up'|'stalled'} ReferralStatus
+ * @typedef {'requested'|'info_sent'|'accepted'|'scheduled'|'seen'|'findings_returned'|'followed_up'|'stalled'} ReferralStatus
+ *   findings_returned = the specialist sent findings back to the clinic, the CHW, and the patient (O8)
  */
 
 /**
@@ -298,6 +299,51 @@ export function makeProvider(p = {}) {
   }
 }
 
+/**
+ * A doctor at a provider (B-14, X-6). Reputation is built from evidence that
+ * can't be bought or faked: a checked license, board certification, how many
+ * patients they treated for each service, whether findings went back to the
+ * referring clinic, and feedback ONLY from patients whose referral was
+ * completed. No star ratings, no anonymous or paid reviews.
+ *
+ * @typedef {Object} Doctor
+ * @property {string} id
+ * @property {string} name
+ * @property {string} credentials          e.g. 'MD', 'DO'
+ * @property {string} role                 Plain description, e.g. 'Heart specialist (cardiologist)'
+ * @property {string} providerId           Where they practise
+ * @property {string[]} treats             Services they provide; values from Provider.services
+ * @property {{ registry: string, licenseId: string, status: VerificationStatus, checkedOn: string }} license
+ * @property {string|null} boardCertification  Certifying board, or null
+ * @property {number} yearsInPractice
+ * @property {string[]} languages
+ * @property {boolean} offersTelehealth
+ * @property {Object<string, number>} casesLastYear  Patients treated per service in the last 12 months
+ * @property {{ seen: number, findingsReturned: number }} referrals  Referred patients seen, and how many had findings sent back
+ * @property {{ verifiedVisits: number, wouldRecommendPct: number, explainedClearlyPct: number, comments: string[] }} feedback
+ *           From patients with a completed referral only
+ */
+
+/** @param {Partial<Doctor>} d @returns {Doctor} */
+export function makeDoctor(d = {}) {
+  return {
+    id: d.id ?? crypto.randomUUID(),
+    name: d.name ?? 'Unknown doctor',
+    credentials: d.credentials ?? '',
+    role: d.role ?? '',
+    providerId: d.providerId ?? '',
+    treats: d.treats ?? [],
+    license: { registry: '', licenseId: '', status: 'unchecked', checkedOn: '', ...d.license },
+    boardCertification: d.boardCertification ?? null,
+    yearsInPractice: d.yearsInPractice ?? 0,
+    languages: d.languages ?? [],
+    offersTelehealth: d.offersTelehealth ?? false,
+    casesLastYear: d.casesLastYear ?? {},
+    referrals: { seen: 0, findingsReturned: 0, ...d.referrals },
+    feedback: { verifiedVisits: 0, wouldRecommendPct: 0, explainedClearlyPct: 0, comments: [], ...d.feedback },
+  }
+}
+
 /** @param {Partial<Scheme>} s @returns {Scheme} */
 export function makeScheme(s = {}) {
   return {
@@ -354,6 +400,7 @@ export const REFERRAL_STATUS_LABELS = {
   accepted: 'Accepted',
   scheduled: 'Scheduled',
   seen: 'Seen',
+  findings_returned: 'Findings sent back',
   followed_up: 'Followed up',
   stalled: 'Stalled',
 }

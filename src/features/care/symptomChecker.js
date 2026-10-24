@@ -48,6 +48,7 @@ import { SPECIALTY_LABELS } from '../../shared/models.js'
  */
 const EMERGENCY_SIGNS = [
   'chest pain',
+  'pain in chest', // also matches "pain in my chest"
   'crushing chest',
   'pressure in chest',
   'can’t breathe',
@@ -128,6 +129,9 @@ const CARE_RULES = [
       'chest tight', 'tight chest', 'chest tightness', 'chest pressure',
       'short of breath', 'shortness of breath', 'breathless',
       'palpitations', 'heart racing', 'heart flutter', 'heart pounding',
+      // Spanish
+      'pecho apretado', 'opresion en el pecho', 'falta de aire', 'me falta el aire',
+      'me ahogo', 'palpitaciones', 'corazon acelerado', 'corazon late rapido',
     ],
   },
   {
@@ -137,6 +141,9 @@ const CARE_RULES = [
     words: [
       'long cough', 'cough for weeks', 'persistent cough', 'wheezing',
       'wheeze', 'coughing a lot', 'breathing problem',
+      // Spanish
+      'tos semanas', 'tos persistente', 'tos que no se quita', 'mucha tos',
+      'silbido al respirar', 'sibilancias', 'problema para respirar',
     ],
   },
   {
@@ -149,6 +156,9 @@ const CARE_RULES = [
     words: [
       'sugar problem', 'sugar high', 'high sugar', 'diabetes', 'very thirsty',
       'always thirsty', 'peeing a lot', 'urinating a lot', 'blurry vision and thirsty',
+      // Spanish
+      'mucha sed', 'siempre con sed', 'orinando mucho', 'orino mucho',
+      'azucar alta', 'problema de azucar',
     ],
   },
   {
@@ -161,6 +171,9 @@ const CARE_RULES = [
     words: [
       'joint pain', 'knee pain', 'back pain', 'swollen joint', 'can’t walk',
       "can't walk properly", 'bone pain', 'hip pain',
+      // Spanish
+      'dolor de rodilla', 'dolor de espalda', 'dolor de cadera', 'dolor de huesos',
+      'dolor en las articulaciones', 'articulacion hinchada', 'no puedo caminar bien',
     ],
   },
   {
@@ -170,25 +183,44 @@ const CARE_RULES = [
       en: 'a primary-care or general doctor, who can look and refer if needed',
       es: 'un médico general o de atención primaria, que puede revisarlo y remitirlo si hace falta',
     },
-    words: ['skin rash', 'rash', 'itchy skin', 'skin lump', 'mole changing', 'spot on skin'],
+    words: [
+      'skin rash', 'rash', 'itchy skin', 'skin lump', 'mole changing', 'spot on skin',
+      // Spanish
+      'sarpullido', 'erupcion en la piel', 'picazon en la piel', 'lunar que cambia',
+      'mancha en la piel', 'bulto en la piel',
+    ],
   },
   {
     specialty: 'obgyn',
     careType: { en: "Women's health specialist (obstetrics & gynaecology)", es: 'Especialista en salud de la mujer (obstetricia y ginecología)' },
     firstStep: { en: 'a primary-care doctor or a women’s health clinic', es: 'un médico de atención primaria o una clínica de salud de la mujer' },
-    words: ['breast lump', 'lump in breast', 'heavy bleeding', 'pregnancy', 'pregnant', 'missed periods', 'pelvic pain'],
+    words: [
+      'breast lump', 'lump in breast', 'heavy bleeding', 'pregnancy', 'pregnant', 'missed periods', 'pelvic pain',
+      // Spanish ("pecho" also means breast)
+      'bulto en el seno', 'bulto en el pecho', 'sangrado abundante', 'embarazo',
+      'embarazada', 'falta de regla', 'no me baja la regla', 'dolor pelvico',
+    ],
   },
   {
     specialty: 'ophthalmology',
     careType: { en: 'Eye specialist (ophthalmology)', es: 'Especialista de los ojos (oftalmología)' },
     firstStep: { en: 'a primary-care doctor or an eye clinic', es: 'un médico de atención primaria o una clínica de los ojos' },
-    words: ['blurry vision', 'blurred vision', 'eye pain', 'can’t see well', 'vision problem', 'red eye'],
+    words: [
+      'blurry vision', 'blurred vision', 'eye pain', 'can’t see well', 'vision problem', 'red eye',
+      // Spanish
+      'vision borrosa', 'veo borroso', 'dolor de ojo', 'ojo rojo', 'no veo bien',
+    ],
   },
   {
     specialty: 'mental health',
     careType: { en: 'Mental health support', es: 'Apoyo de salud mental' },
     firstStep: { en: 'a primary-care doctor or a counsellor you trust', es: 'un médico de atención primaria o un consejero de confianza' },
-    words: ['feeling low', 'depressed', 'anxious', 'can’t sleep', 'cannot sleep', 'very stressed', 'panic'],
+    words: [
+      'feeling low', 'depressed', 'anxious', 'can’t sleep', 'cannot sleep', 'very stressed', 'panic',
+      // Spanish
+      'me siento triste', 'deprimido', 'deprimida', 'ansioso', 'ansiosa',
+      'no puedo dormir', 'muy estresado', 'muy estresada', 'panico',
+    ],
   },
 ]
 
@@ -205,6 +237,74 @@ function normalise(text) {
     .toLowerCase()
     .replace(/\s+/g, ' ')
     .trim()
+}
+
+/**
+ * Words for matching: lowercase, accents removed ("caída" → "caida"), curly
+ * apostrophes straightened, punctuation dropped.
+ */
+function words(text) {
+  return String(text || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[’‘]/g, "'")
+    .replace(/[^a-z0-9'\s]/g, ' ')
+    .split(/\s+/)
+    .filter(Boolean)
+}
+
+/** Up to this many other words may sit between the words of a phrase. */
+const MAX_GAP = 2
+
+/** A word matches exactly, or as a longer form ("tight" → "tightness"). */
+const wordMatches = (word, target) =>
+  word === target || (target.length >= 4 && word.startsWith(target))
+
+/**
+ * True when the phrase's words appear in order in the input, with at most
+ * MAX_GAP words between each. So "chest tight" matches "chest feels tight"
+ * and "lump in breast" matches "a lump in my breast" (A-5: everyday wording).
+ *
+ * @param {string[]} input   words(text)
+ * @param {string} phrase
+ */
+function phraseMatches(input, phrase) {
+  const target = words(phrase)
+  if (target.length === 0) return false
+  for (let start = 0; start < input.length; start++) {
+    if (!wordMatches(input[start], target[0])) continue
+    let pos = start
+    let ok = true
+    for (let k = 1; k < target.length && ok; k++) {
+      const end = Math.min(pos + 1 + MAX_GAP, input.length - 1)
+      let found = -1
+      for (let j = pos + 1; j <= end; j++) {
+        if (wordMatches(input[j], target[k])) {
+          found = j
+          break
+        }
+      }
+      if (found < 0) ok = false
+      else pos = found
+    }
+    if (ok) return true
+  }
+  return false
+}
+
+/**
+ * Fixed advice added to every non-emergency result (O1: people self-medicate).
+ * Our own wording, so it never names a medicine.
+ */
+export const SELF_MEDICATION_NOTE = {
+  en: 'Don’t start, stop, or change any medicine on your own. Ask a doctor or pharmacist first.',
+  es: 'No empiece, deje ni cambie ninguna medicina por su cuenta. Pregunte primero a un médico o farmacéutico.',
+}
+
+/** @param {string} [code] 'en' | 'es' */
+export function selfMedicationNote(code = 'en') {
+  return L(SELF_MEDICATION_NOTE, code)
 }
 
 /**
@@ -284,8 +384,13 @@ export function suggestCareType(text, code = 'en') {
     }
   }
 
-  // 1) EMERGENCY FIRST — never skip this (X-2).
-  const emergencyHits = EMERGENCY_SIGNS.filter((sign) => input.includes(sign))
+  const inputWords = words(text)
+
+  // 1) EMERGENCY FIRST — never skip this (X-2). Exact text OR the looser word
+  // match, so the looser match can only catch more emergencies, never fewer.
+  const emergencyHits = EMERGENCY_SIGNS.filter(
+    (sign) => input.includes(sign) || phraseMatches(inputWords, sign),
+  )
   if (emergencyHits.length > 0) {
     return {
       kind: 'emergency',
@@ -301,7 +406,7 @@ export function suggestCareType(text, code = 'en') {
   const matches = []
   let primary = null
   for (const rule of CARE_RULES) {
-    const hits = rule.words.filter((w) => input.includes(w))
+    const hits = rule.words.filter((w) => phraseMatches(inputWords, w))
     if (hits.length > 0) {
       matches.push(...hits)
       if (!primary) primary = rule
@@ -316,7 +421,7 @@ export function suggestCareType(text, code = 'en') {
       careType,
       specialty: primary.specialty,
       headline: L(COPY.suggestHeadline, code)(careType),
-      notes: L(COPY.suggestNotes, code)(firstStep),
+      notes: [...L(COPY.suggestNotes, code)(firstStep), selfMedicationNote(code)],
       matchedWords: dedupe(matches),
     }
   }
@@ -327,7 +432,7 @@ export function suggestCareType(text, code = 'en') {
     careType: '',
     specialty: 'primary care',
     headline: L(COPY.unclearHeadline, code),
-    notes: L(COPY.unclearNotes, code),
+    notes: [...L(COPY.unclearNotes, code), selfMedicationNote(code)],
     matchedWords: [],
   }
 }

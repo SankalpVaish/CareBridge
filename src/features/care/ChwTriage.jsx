@@ -41,6 +41,9 @@ function fromSession(s) {
     consent: s.consentRecorded,
     fromPatient: s.startedIn === 'patient',
     readings: s.readings,
+    reviewed: s.status === 'reviewed',
+    sentToClinicAt: s.sentToClinicAt,
+    clinicName: s.clinicName,
   }
 }
 
@@ -96,7 +99,13 @@ function ChwWorkspace() {
       const { session } = active.sessionId
         ? await api.updateTriage(active.sessionId, payload)
         : await api.createTriage({ ...payload, patientId: active.patientId, consent: active.consent })
-      setActive((a) => ({ ...a, sessionId: session.id }))
+      setActive((a) => ({
+        ...a,
+        sessionId: session.id,
+        reviewed: true,
+        sentToClinicAt: session.sentToClinicAt,
+        clinicName: session.clinicName,
+      }))
       setSave({ state: 'saved' })
       load()
     } catch (err) {
@@ -225,6 +234,17 @@ function ChwWorkspace() {
           </p>
         )}
 
+        {/* Hand the saved check to the patient's clinic (O7) */}
+        {active.sessionId && active.reviewed && (
+          <SendToClinic
+            active={active}
+            onSent={(session) => {
+              setActive((a) => ({ ...a, sentToClinicAt: session.sentToClinicAt, clinicName: session.clinicName }))
+              load()
+            }}
+          />
+        )}
+
         {ready && checked && (
           <Card>
             <Button onClick={saveCheck}>
@@ -251,6 +271,51 @@ function ChwWorkspace() {
   )
 }
 
+/** Sends a saved check to the patient's own clinic, where a clinician decides on a referral. */
+function SendToClinic({ active, onSent }) {
+  const [state, setState] = useState({ state: 'idle' })
+
+  if (active.sentToClinicAt) {
+    return (
+      <Card>
+        <p className="text-sm text-green-700" role="status">
+          ✓ Sent to {active.clinicName ?? 'the clinic'} on {formatWhen(active.sentToClinicAt)}. The
+          clinician will decide whether to refer, and you’ll see the referral and findings on the
+          Coordinate page.
+        </p>
+      </Card>
+    )
+  }
+
+  async function send() {
+    setState({ state: 'sending' })
+    try {
+      const { session } = await api.sendTriageToClinic(active.sessionId)
+      setState({ state: 'idle' })
+      onSent(session)
+    } catch (err) {
+      setState({ state: 'error', message: err.message })
+    }
+  }
+
+  return (
+    <Card>
+      <p className="text-sm text-slate-600">
+        Send this check, with the readings, to {active.patientName}’s clinic. The clinician decides
+        whether a specialist is needed.
+      </p>
+      <div className="mt-2">
+        <Button onClick={send}>{state.state === 'sending' ? 'Sending…' : 'Send to clinic'}</Button>
+      </div>
+      {state.state === 'error' && (
+        <p className="mt-2 text-sm text-red-700" role="alert">
+          {state.message}
+        </p>
+      )}
+    </Card>
+  )
+}
+
 function SessionList({ sessions, activeId, onOpen, empty }) {
   if (sessions.length === 0) {
     return empty ? <p className="mt-3 text-sm text-slate-500">{empty}</p> : null
@@ -271,6 +336,8 @@ function SessionList({ sessions, activeId, onOpen, empty }) {
               <span className="font-medium text-slate-900">{s.patientName}</span>
               {s.result.kind === 'emergency' ? (
                 <Badge tone="red">Emergency signs</Badge>
+              ) : s.sentToClinicAt ? (
+                <Badge tone="blue">Sent to clinic</Badge>
               ) : s.status === 'shared' ? (
                 <Badge tone="amber">Needs review</Badge>
               ) : (

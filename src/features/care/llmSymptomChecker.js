@@ -26,7 +26,12 @@
  * In a frontend-only build this key ships in the browser bundle — acceptable
  * for a local demo only. Use a server proxy before any real deployment.
  */
-import { suggestCareType, specialtyFromCareType, careTypeLabel } from './symptomChecker.js'
+import {
+  suggestCareType,
+  specialtyFromCareType,
+  careTypeLabel,
+  selfMedicationNote,
+} from './symptomChecker.js'
 import { findUnsafeTerms } from './outputSafety.js'
 import { SPECIALTY_LABELS, URGENCY_LABELS } from '../../shared/models.js'
 
@@ -200,7 +205,8 @@ export async function suggestCareTypeLLM(text, opts = {}) {
       specialty: parsed.specialty,
       urgency: moreUrgent(parsed.urgency, urgencyFloor),
       headline: parsed.headline,
-      notes: parsed.notes,
+      // Our fixed medicine advice is added after the safety check (O1).
+      notes: [...parsed.notes, selfMedicationNote(lang)],
       matchedWords: [],
       source: 'llm',
     }

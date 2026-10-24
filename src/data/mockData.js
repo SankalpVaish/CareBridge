@@ -17,6 +17,7 @@ import {
   makeProvider,
   makeScheme,
   makeReferral,
+  makeDoctor,
 } from '../shared/models.js'
 
 export const REGION = {
@@ -456,6 +457,46 @@ export const providers = [
   }),
 ]
 
+// --- Ways to get to care (Workstream B owns; used by the trip plan, O3, B-4..B-8)
+// Demo fares and timings. `id` matches Patient.transport, except transport that
+// comes with a scheme (requiresSchemeId).
+export const transportOptions = [
+  {
+    id: 'community shuttle',
+    label: 'Community shuttle',
+    icon: '🚌',
+    kind: 'scheduled', // fixed timetable
+    roundTripFareUsd: 12,
+    mph: 30,
+    maxMiles: 80,
+    days: ['Tue', 'Thu'],
+    departs: '07:00',
+    returnsAt: '16:30',
+    walkMinutes: 10,
+    pickup: 'Main Street stop, Cedar Falls',
+  },
+  {
+    id: 'shared ride',
+    label: 'Shared ride',
+    icon: '🚗',
+    kind: 'on_demand',
+    costPerMileUsd: 0.65, // per mile, each way
+    mph: 45,
+    pickup: 'From home',
+  },
+  {
+    id: 'medicaid-nemt',
+    label: 'Medicaid medical transport',
+    icon: '🩺',
+    kind: 'booked', // free, but must be booked ahead
+    requiresSchemeId: 'medicaid',
+    roundTripFareUsd: 0,
+    mph: 40,
+    bookAheadDays: 2,
+    pickup: 'From home',
+  },
+]
+
 // --- The demo patient, shared across ALL workstreams -------------------------
 export const demoPatient = makePatient({
   id: 'patient-maria',
@@ -498,8 +539,290 @@ export const referrals = [
   }),
 ]
 
+// --- Doctors (Workstream B owns; shown on a provider's page in Find & Trust) -
+// Demo people with made-up license numbers. Reputation fields are explained on
+// the Doctor typedef in src/shared/models.js: evidence only, no star ratings.
+// Feedback counts only patients whose referral was completed.
+const license = (licenseId, checkedOn = '2026-10-01') => ({
+  registry: 'State Medical Board',
+  licenseId,
+  status: 'verified',
+  checkedOn,
+})
+
+export const doctors = [
+  // Regional Heart Center
+  makeDoctor({
+    id: 'dr-patel',
+    name: 'Dr. Anita Patel',
+    credentials: 'MD',
+    role: 'Heart specialist who does heart catheter procedures (interventional cardiologist)',
+    providerId: 'prov-cardio-regional',
+    treats: ['Cardiac catheterization', 'Angioplasty', 'Stress test'],
+    license: license('MD-104552'),
+    boardCertification: 'American Board of Internal Medicine (Interventional Cardiology)',
+    yearsInPractice: 18,
+    languages: ['English'],
+    offersTelehealth: true,
+    casesLastYear: { 'Cardiac catheterization': 210, Angioplasty: 140, 'Stress test': 90 },
+    referrals: { seen: 40, findingsReturned: 36 },
+    feedback: {
+      verifiedVisits: 52,
+      wouldRecommendPct: 94,
+      explainedClearlyPct: 88,
+      comments: [
+        'She drew a picture of what the procedure would do. I knew what to expect.',
+        'My clinic had her letter two days after I went home.',
+      ],
+    },
+  }),
+  makeDoctor({
+    id: 'dr-ramirez',
+    name: 'Dr. Luis Ramírez',
+    credentials: 'MD',
+    role: 'Heart specialist (cardiologist)',
+    providerId: 'prov-cardio-regional',
+    treats: ['ECG', 'Echocardiogram', 'Stress test'],
+    license: license('MD-121980'),
+    boardCertification: 'American Board of Internal Medicine (Cardiovascular Disease)',
+    yearsInPractice: 9,
+    languages: ['English', 'Spanish'],
+    offersTelehealth: true,
+    casesLastYear: { ECG: 620, Echocardiogram: 380, 'Stress test': 160 },
+    referrals: { seen: 55, findingsReturned: 46 },
+    feedback: {
+      verifiedVisits: 61,
+      wouldRecommendPct: 91,
+      explainedClearlyPct: 95,
+      comments: [
+        'Explained everything in Spanish, so my mother understood too.',
+        'Did my follow-up by video, so I didn’t have to drive again.',
+      ],
+    },
+  }),
+  // County Cardiology Clinic
+  makeDoctor({
+    id: 'dr-okafor',
+    name: 'Dr. Grace Okafor',
+    credentials: 'MD',
+    role: 'Heart specialist (cardiologist)',
+    providerId: 'prov-cardio-county',
+    treats: ['Echocardiogram', 'Stress test', 'Holter monitor'],
+    license: license('MD-118790', '2026-09-15'),
+    boardCertification: 'American Board of Internal Medicine (Cardiovascular Disease)',
+    yearsInPractice: 12,
+    languages: ['English'],
+    offersTelehealth: false,
+    casesLastYear: { Echocardiogram: 290, 'Stress test': 140, 'Holter monitor': 85 },
+    referrals: { seen: 38, findingsReturned: 26 },
+    feedback: {
+      verifiedVisits: 33,
+      wouldRecommendPct: 85,
+      explainedClearlyPct: 79,
+      comments: ['Short wait and on time. A bit rushed when I had questions.'],
+    },
+  }),
+  makeDoctor({
+    id: 'dr-lindqvist',
+    name: 'Dr. Erik Lindqvist',
+    credentials: 'DO',
+    role: 'Heart specialist (cardiologist)',
+    providerId: 'prov-cardio-county',
+    treats: ['ECG', 'Holter monitor', 'Echocardiogram'],
+    license: license('DO-201377', '2026-09-15'),
+    boardCertification: 'American Osteopathic Board of Internal Medicine (Cardiology)',
+    yearsInPractice: 4,
+    languages: ['English'],
+    offersTelehealth: false,
+    casesLastYear: { ECG: 240, 'Holter monitor': 60, Echocardiogram: 45 },
+    referrals: { seen: 12, findingsReturned: 9 },
+    feedback: {
+      verifiedVisits: 6,
+      wouldRecommendPct: 100,
+      explainedClearlyPct: 83,
+      comments: ['Took time to go through my heart monitor results.'],
+    },
+  }),
+  // University Cancer Institute
+  makeDoctor({
+    id: 'dr-chen',
+    name: 'Dr. Mei Chen',
+    credentials: 'MD',
+    role: 'Breast cancer surgeon (surgical oncologist)',
+    providerId: 'prov-onc-university',
+    treats: ['Cancer surgery', 'Biopsy', 'Breast ultrasound'],
+    license: license('MD-099214', '2026-10-05'),
+    boardCertification: 'American Board of Surgery (Complex General Surgical Oncology)',
+    yearsInPractice: 15,
+    languages: ['English'],
+    offersTelehealth: true,
+    casesLastYear: { 'Cancer surgery': 180, Biopsy: 260, 'Breast ultrasound': 150 },
+    referrals: { seen: 64, findingsReturned: 60 },
+    feedback: {
+      verifiedVisits: 70,
+      wouldRecommendPct: 96,
+      explainedClearlyPct: 92,
+      comments: [
+        'Gave me a written plan to take home and share with my clinic.',
+        'Her team called to check I had somewhere to stay the night.',
+      ],
+    },
+  }),
+  makeDoctor({
+    id: 'dr-alvarado',
+    name: 'Dr. Sofía Alvarado',
+    credentials: 'MD',
+    role: 'Cancer medicine specialist (medical oncologist)',
+    providerId: 'prov-onc-university',
+    treats: ['Chemotherapy'],
+    license: license('MD-130045', '2026-10-05'),
+    boardCertification: 'American Board of Internal Medicine (Medical Oncology)',
+    yearsInPractice: 11,
+    languages: ['English', 'Spanish'],
+    offersTelehealth: true,
+    casesLastYear: { Chemotherapy: 310 },
+    referrals: { seen: 48, findingsReturned: 44 },
+    feedback: {
+      verifiedVisits: 57,
+      wouldRecommendPct: 93,
+      explainedClearlyPct: 94,
+      comments: ['Spoke to me in Spanish and wrote down every appointment date.'],
+    },
+  }),
+  makeDoctor({
+    id: 'dr-brooks',
+    name: 'Dr. James Brooks',
+    credentials: 'MD',
+    role: 'Radiation treatment specialist (radiation oncologist)',
+    providerId: 'prov-onc-university',
+    treats: ['Radiotherapy'],
+    license: license('MD-087731', '2026-10-05'),
+    boardCertification: 'American Board of Radiology (Radiation Oncology)',
+    yearsInPractice: 20,
+    languages: ['English'],
+    offersTelehealth: true,
+    casesLastYear: { Radiotherapy: 240 },
+    referrals: { seen: 30, findingsReturned: 25 },
+    feedback: {
+      verifiedVisits: 34,
+      wouldRecommendPct: 88,
+      explainedClearlyPct: 85,
+      comments: ['Arranged my sessions so I could travel fewer days.'],
+    },
+  }),
+  makeDoctor({
+    id: 'dr-nguyen',
+    name: 'Dr. Linh Nguyen',
+    credentials: 'MD',
+    role: 'Breast imaging specialist (radiologist)',
+    providerId: 'prov-onc-university',
+    treats: ['Mammography', 'Breast ultrasound', 'Biopsy'],
+    license: license('MD-140602', '2026-10-05'),
+    boardCertification: 'American Board of Radiology (Diagnostic Radiology)',
+    yearsInPractice: 7,
+    languages: ['English'],
+    offersTelehealth: false,
+    casesLastYear: { Mammography: 1400, 'Breast ultrasound': 520, Biopsy: 190 },
+    referrals: { seen: 72, findingsReturned: 68 },
+    feedback: {
+      verifiedVisits: 44,
+      wouldRecommendPct: 90,
+      explainedClearlyPct: 86,
+      comments: ['Results were sent to my clinic the same week.'],
+    },
+  }),
+  // Lakeside Oncology Associates
+  makeDoctor({
+    id: 'dr-harris',
+    name: 'Dr. Paul Harris',
+    credentials: 'MD',
+    role: 'Cancer medicine specialist (medical oncologist)',
+    providerId: 'prov-onc-lakeside',
+    treats: ['Chemotherapy', 'Biopsy'],
+    license: license('MD-075518', '2026-09-28'),
+    boardCertification: 'American Board of Internal Medicine (Medical Oncology)',
+    yearsInPractice: 25,
+    languages: ['English'],
+    offersTelehealth: false,
+    casesLastYear: { Chemotherapy: 260, Biopsy: 70 },
+    referrals: { seen: 35, findingsReturned: 24 },
+    feedback: {
+      verifiedVisits: 29,
+      wouldRecommendPct: 82,
+      explainedClearlyPct: 74,
+      comments: ['Very experienced. Hard to reach between visits.'],
+    },
+  }),
+  makeDoctor({
+    id: 'dr-wu',
+    name: 'Dr. Karen Wu',
+    credentials: 'MD',
+    role: 'Breast imaging specialist (radiologist)',
+    providerId: 'prov-onc-lakeside',
+    treats: ['Mammography', 'Biopsy'],
+    license: license('MD-151190', '2026-09-28'),
+    boardCertification: 'American Board of Radiology (Diagnostic Radiology)',
+    yearsInPractice: 6,
+    languages: ['English'],
+    offersTelehealth: false,
+    casesLastYear: { Mammography: 900, Biopsy: 110 },
+    referrals: { seen: 26, findingsReturned: 20 },
+    feedback: {
+      verifiedVisits: 18,
+      wouldRecommendPct: 89,
+      explainedClearlyPct: 83,
+      comments: ['Quick and gentle. Explained the next step before I left.'],
+    },
+  }),
+  // Hometown Family Practice
+  makeDoctor({
+    id: 'dr-miller',
+    name: 'Dr. Sarah Miller',
+    credentials: 'MD',
+    role: 'Family doctor (primary care)',
+    providerId: 'prov-pcp-hometown',
+    treats: ['Primary care', 'Basic ECG', 'Blood tests'],
+    license: license('MD-093388', '2026-09-15'),
+    boardCertification: 'American Board of Family Medicine',
+    yearsInPractice: 14,
+    languages: ['English', 'Spanish'],
+    offersTelehealth: true,
+    casesLastYear: { 'Primary care': 2100, 'Basic ECG': 310, 'Blood tests': 1500 },
+    referrals: { seen: 0, findingsReturned: 0 },
+    feedback: {
+      verifiedVisits: 88,
+      wouldRecommendPct: 95,
+      explainedClearlyPct: 93,
+      comments: ['Follows up after every specialist visit.'],
+    },
+  }),
+  // Cedar Falls Community Hospital
+  makeDoctor({
+    id: 'dr-johnson',
+    name: 'Dr. Marcus Johnson',
+    credentials: 'MD',
+    role: 'Emergency doctor (emergency medicine)',
+    providerId: 'prov-er-cedar-falls',
+    treats: ['Emergency department', 'X-ray', 'Blood tests'],
+    license: license('MD-112460'),
+    boardCertification: 'American Board of Emergency Medicine',
+    yearsInPractice: 16,
+    languages: ['English', 'Spanish'],
+    offersTelehealth: false,
+    casesLastYear: { 'Emergency department': 3200, 'X-ray': 1100, 'Blood tests': 2400 },
+    referrals: { seen: 0, findingsReturned: 0 },
+    feedback: {
+      verifiedVisits: 41,
+      wouldRecommendPct: 87,
+      explainedClearlyPct: 80,
+      comments: ['Called my health worker to say I had been seen.'],
+    },
+  }),
+]
+
 // --- Convenience lookups so every workstream resolves IDs the same way -------
 export const byId = {
+  doctor: (id) => doctors.find((d) => d.id === id),
   patient: (id) => patients.find((p) => p.id === id),
   provider: (id) => providers.find((p) => p.id === id),
   scheme: (id) => schemes.find((s) => s.id === id),

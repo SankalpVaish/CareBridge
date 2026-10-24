@@ -116,7 +116,6 @@ export default function SymptomChecker({
     <Card>
       <div className="flex items-center justify-between gap-2">
         <h2 className="font-semibold text-slate-900">{heading}</h2>
-        <Badge tone="slate">A-1..A-5</Badge>
       </div>
       <p className="mt-1 text-sm text-slate-600">{t('sym.intro')}</p>
 

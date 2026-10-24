@@ -29,7 +29,7 @@ export default function CoverageCheck({ provider, items, onFound }) {
   }
 
   return (
-    <Card className="lg:col-span-2">
+    <Card>
       <h2 className="font-semibold text-slate-900">Check my coverage</h2>
       <p className="mt-1 text-sm text-slate-600">
         Enter the member number from your insurance or Medicaid card to see what

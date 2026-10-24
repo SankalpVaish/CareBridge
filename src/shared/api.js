@@ -47,4 +47,9 @@ export const api = {
   listChwPatients: () => request('/triage/patients'),
   createTriage: (payload) => request('/triage', { method: 'POST', body: payload }),
   updateTriage: (id, payload) => request(`/triage/${id}`, { method: 'PATCH', body: payload }),
+  // Referral loop (O7, O8)
+  sendTriageToClinic: (id) => request(`/triage/${id}/send`, { method: 'POST' }),
+  listClinicInbox: () => request('/triage/inbox'),
+  createReferral: (payload) => request('/referrals', { method: 'POST', body: payload }),
+  loopStats: () => request('/loop-stats'),
 }

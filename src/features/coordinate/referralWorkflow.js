@@ -14,6 +14,7 @@ export const PIPELINE = [
   'accepted',
   'scheduled',
   'seen',
+  'findings_returned', // the loop closes here (O8)
   'followed_up',
 ]
 

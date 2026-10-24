@@ -45,3 +45,16 @@ so the site stays clean for judging.
 - [ ] Keep the demo patient **Maria Alvarez** consistent across all three sections.
 - [ ] Add new shared fields in `src/shared/models.js` (not in a feature folder) and tell the team.
 - [ ] Respect privacy, consent, language, and literacy differences (X-3, X-5).
+
+---
+
+## Future work
+
+- [ ] **O9 / C-10..C-13 — Different prescriptions for the same condition.** When a
+  specialist changes a medicine, record "changed X to Y because…" with the
+  findings, show the reason to the clinic and the health worker, and give the
+  patient a plain-language version, so a new doctor knows what was tried before.
+  Needs a medication-change field on the findings and the same approve-before-send
+  step. Never suggest changes ourselves (X-1). (PLAN.md screen C7, gap G6.)
+- [ ] AI draft of the plain-language findings, for the specialist to edit and approve.
+- [ ] Flag referrals with no response after a set time (e.g. 3 days) on Coordinate.

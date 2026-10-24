@@ -23,6 +23,7 @@
 import { schemes as allSchemes } from '../../data/mockData.js'
 import { matchScheme, relevantSchemes } from './aid.js'
 import { applyCoverage } from './coverage.js'
+import { planTrip } from '../find/travel.js'
 
 /**
  * The editable line items that make up a full-journey cost (A-7).
@@ -59,9 +60,13 @@ function tripMiles(patient, provider) {
 export function buildCostInputs(patient, provider) {
   const miles = tripMiles(patient, provider)
   const consult = provider?.consultFeeUsd ?? 0
-  // Travel scales with distance; round trip at ~$0.80/mi (ties to C-8, C-11).
-  const travel = r(miles * 0.8)
-  const farAway = miles > 50
+  // Travel and the overnight stay come from the shared trip plan, so this
+  // matches Find & Trust and Coordinate (O3). Free transport (e.g. Medicaid
+  // rides) is left out here: it shows as a saving under "Help paying".
+  const plan = planTrip(patient, provider)
+  const travel = plan?.cheapestPaid ? plan.cheapestPaid.roundTripCostUsd : r(miles * 0.8)
+  const travelWorst = plan?.priciestPaid ? plan.priciestPaid.roundTripCostUsd : r(travel * 1.5)
+  const farAway = plan ? plan.overnightNeeded : miles > 50
   const lodging = farAway ? 90 : 0
   const lostWages = miles > 30 ? 80 : 40
   return [
@@ -116,9 +121,9 @@ export function buildCostInputs(patient, provider) {
     {
       key: 'travel',
       label: { en: 'Travel (round trip)', es: 'Viaje (ida y vuelta)' },
-      best: r(travel * 0.8),
+      best: travel,
       expected: travel,
-      worst: r(travel * 1.5), // a missed bus, a hired ride
+      worst: Math.max(travel, travelWorst), // the shuttle doesn't run that day: a shared ride
       certain: true,
       note: {
         en: 'Fairly predictable once you know the distance and mode.',

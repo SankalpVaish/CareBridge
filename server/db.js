@@ -14,6 +14,8 @@ import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 import { mkdirSync } from 'node:fs'
 import bcrypt from 'bcryptjs'
+// One source of truth for providers: the shared demo data the frontend uses.
+import { providers as sharedProviders } from '../src/data/mockData.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const dataDir = join(__dirname, 'data')
@@ -86,6 +88,22 @@ db.exec(`
     updated_at       TEXT NOT NULL
   );
 `)
+
+// --- Migrations: add columns the referral loop needs (O7, O8) --------------
+// Safe to run on every boot; existing databases keep their data.
+function addColumn(table, column, type) {
+  const cols = db.prepare(`PRAGMA table_info(${table})`).all()
+  if (!cols.some((c) => c.name === column)) {
+    db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${type}`)
+  }
+}
+addColumn('patients', 'pcp_provider_id', 'TEXT') // the patient's own clinic
+addColumn('referrals', 'findings', 'TEXT') // JSON, set when the specialist sends findings back
+addColumn('referrals', 'triage_session_id', 'TEXT') // the symptom check it came from
+addColumn('referrals', 'is_history', 'INTEGER NOT NULL DEFAULT 0') // past referrals, only for loop stats
+addColumn('triage_sessions', 'sent_to_clinic_at', 'TEXT')
+addColumn('triage_sessions', 'clinic_provider_id', 'TEXT')
+addColumn('triage_sessions', 'referral_id', 'TEXT')
 
 const usersTableSql =
   db.prepare("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'users'").get()?.sql ?? ''
@@ -172,6 +190,53 @@ if (userCount === 0) {
   })
 
   console.log('[db] Seeded demo data (4 users, password: demo1234)')
+}
+
+// --- Idempotent demo data for the referral loop (runs on every boot) -------
+
+// Every provider from the shared demo data, so referrals can go to any of them.
+const insertProviderIfMissing = db.prepare(
+  'INSERT OR IGNORE INTO providers (id, name, type, location) VALUES (?, ?, ?, ?)',
+)
+for (const p of sharedProviders) insertProviderIfMissing.run(p.id, p.name, p.type, p.location)
+insertProviderIfMissing.run('prov-history-clinics', 'Other clinics (demo history)', 'clinic', 'Various')
+
+// Maria's own clinic receives the checks her health worker sends (O7).
+db.prepare(
+  "UPDATE patients SET pcp_provider_id = 'prov-pcp-hometown' WHERE id = 'patient-maria' AND pcp_provider_id IS NULL",
+).run()
+
+// Past referrals per specialist: [patients seen, findings sent back]. These
+// give the loop-closure numbers in Find & Trust a starting history; new
+// referrals made in the app are added on top (O7, O8, B-14).
+const LOOP_HISTORY = {
+  'prov-cardio-regional': [11, 9],
+  'prov-cardio-county': [11, 7],
+  'prov-onc-university': [10, 9],
+  'prov-onc-lakeside': [7, 5],
+  'prov-er-cedar-falls': [12, 7],
+}
+db.prepare(
+  "INSERT OR IGNORE INTO patients (id, name, location) VALUES ('patient-history', 'Past patients (demo history)', 'Various')",
+).run()
+const insertHistory = db.prepare(`
+  INSERT OR IGNORE INTO referrals
+    (id, patient_id, from_provider_id, to_provider_id, reason, status, created_date,
+     timeline, missing_info, findings, is_history)
+  VALUES (@id, 'patient-history', 'prov-history-clinics', @to, 'Past referral (demo history)',
+          @status, @created, '[]', '[]', @findings, 1)
+`)
+for (const [to, [seen, returned]] of Object.entries(LOOP_HISTORY)) {
+  for (let i = 0; i < seen; i++) {
+    const created = `2026-${String((i % 9) + 1).padStart(2, '0')}-15`
+    insertHistory.run({
+      id: `hist-${to}-${i}`,
+      to,
+      status: i < returned ? 'followed_up' : 'seen',
+      created,
+      findings: i < returned ? JSON.stringify({ forClinician: '', forPatient: '', by: 'demo history', at: created }) : null,
+    })
+  }
 }
 
 export default db

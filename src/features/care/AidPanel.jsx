@@ -29,30 +29,35 @@ export default function AidPanel({ matches, estimate, provider }) {
   const paid = Object.fromEntries(
     [...estimate.coveredBy, ...estimate.couldSave].map((c) => [c.schemeId, c.amountUsd]),
   )
-  const useful = matches.filter((m) => m.status !== 'not_eligible')
-  const notForYou = matches.filter((m) => m.status === 'not_eligible')
+  // Three groups, so the patient sees what matters first:
+  // what she has, what she can apply for, and (folded away) everything else.
+  const have = matches.filter((m) => m.status === 'enrolled')
+  const canApply = matches.filter((m) => m.status === 'eligible' || m.status === 'maybe')
+  const other = matches.filter((m) => m.status === 'not_here' || m.status === 'not_eligible')
+  const saved = (m) => paid[m.scheme.id] ?? 0
 
   return (
-    <Card className="lg:col-span-2">
+    <Card>
       <h2 className="font-semibold text-slate-900">Help paying for care</h2>
       <p className="mt-1 text-sm text-slate-600">
-        What Maria already has, what she qualifies for, and how to apply. Savings
-        are for a visit to {provider.name}.
+        Savings are for a visit to {provider.name}.
       </p>
 
-      <div className="mt-4 grid gap-3 md:grid-cols-2">
-        {useful.map((m) => (
-          <SchemeCard key={m.scheme.id} match={m} savedUsd={paid[m.scheme.id] ?? 0} />
-        ))}
-      </div>
+      <Group title="You already have" items={have} saved={saved} />
+      <Group
+        title="You can apply for"
+        hint="Open “How to apply” on each card for the steps and documents."
+        items={canApply}
+        saved={saved}
+      />
 
-      {notForYou.length > 0 && (
-        <details className="mt-4">
+      {other.length > 0 && (
+        <details className="mt-5">
           <summary className="cursor-pointer text-sm font-medium text-slate-700">
-            Not for Maria right now ({notForYou.length})
+            Other programmes that don’t fit this visit ({other.length})
           </summary>
           <div className="mt-3 grid gap-3 md:grid-cols-2">
-            {notForYou.map((m) => (
+            {other.map((m) => (
               <SchemeCard key={m.scheme.id} match={m} savedUsd={0} />
             ))}
           </div>
@@ -64,6 +69,23 @@ export default function AidPanel({ matches, estimate, provider }) {
         before you rely on it.
       </p>
     </Card>
+  )
+}
+
+function Group({ title, hint, items, saved }) {
+  if (items.length === 0) return null
+  return (
+    <section className="mt-5">
+      <h3 className="text-sm font-semibold text-slate-800">
+        {title} <span className="font-normal text-slate-500">({items.length})</span>
+      </h3>
+      {hint && <p className="mt-0.5 text-xs text-slate-500">{hint}</p>}
+      <div className="mt-2 grid gap-3 md:grid-cols-2">
+        {items.map((m) => (
+          <SchemeCard key={m.scheme.id} match={m} savedUsd={saved(m)} />
+        ))}
+      </div>
+    </section>
   )
 }
 

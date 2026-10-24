@@ -26,7 +26,7 @@ export default function CarePreferencesBar() {
   const showLang = available.length > 1
 
   return (
-    <div className="mb-5 flex flex-wrap items-center gap-x-6 gap-y-3 rounded-lg border border-slate-200 bg-white p-3">
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
       {showLang && (
         <div className="flex items-center gap-2">
           <span className="text-sm font-medium text-slate-700">
@@ -57,7 +57,10 @@ export default function CarePreferencesBar() {
         </div>
       )}
 
-      <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-700">
+      <label
+        className="flex cursor-pointer items-center gap-2 text-sm text-slate-700"
+        title={t('prefs.easyReadHint')}
+      >
         <input
           type="checkbox"
           checked={lowLiteracy}
@@ -66,10 +69,6 @@ export default function CarePreferencesBar() {
         />
         <span className="font-medium">{t('prefs.easyRead')}</span>
       </label>
-
-      <p className="w-full text-xs text-slate-500 sm:w-auto sm:flex-1">
-        {t('prefs.easyReadHint')}
-      </p>
     </div>
   )
 }

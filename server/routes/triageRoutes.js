@@ -21,10 +21,11 @@ const READING_KEYS = ['temperature', 'bloodPressure', 'pulse', 'weight']
 const MAX_TEXT = 2000
 
 const SELECT_SESSION = `
-  SELECT t.*, p.name AS patient_name, u.name AS chw_name
+  SELECT t.*, p.name AS patient_name, u.name AS chw_name, c.name AS clinic_name
   FROM triage_sessions t
   JOIN patients p ON p.id = t.patient_id
   JOIN users u ON u.id = t.chw_user_id
+  LEFT JOIN providers c ON c.id = t.clinic_provider_id
 `
 
 function toSession(row) {
@@ -40,6 +41,9 @@ function toSession(row) {
     result: JSON.parse(row.result),
     readings: JSON.parse(row.readings),
     consentRecorded: Boolean(row.consent_recorded),
+    sentToClinicAt: row.sent_to_clinic_at ?? null,
+    clinicName: row.clinic_name ?? null,
+    referralId: row.referral_id ?? null,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   }
@@ -100,6 +104,40 @@ router.get('/', (req, res) => {
     .prepare(`${SELECT_SESSION} WHERE t.chw_user_id = ? ORDER BY t.updated_at DESC`)
     .all(user.id)
   res.json({ sessions: rows.map(toSession) })
+})
+
+// GET /api/triage/inbox — checks health workers sent to this clinician's clinic (O7)
+router.get('/inbox', (req, res) => {
+  const user = currentUser(req)
+  if (user.role !== 'pcp') return res.status(403).json({ error: 'Only clinic staff have an inbox' })
+  const rows = db
+    .prepare(`${SELECT_SESSION} WHERE t.clinic_provider_id = ? AND t.sent_to_clinic_at IS NOT NULL ORDER BY t.sent_to_clinic_at DESC`)
+    .all(user.provider_id)
+  res.json({ sessions: rows.map(toSession) })
+})
+
+// POST /api/triage/:id/send — CHW sends a saved check to the patient's own clinic (O7)
+router.post('/:id/send', (req, res) => {
+  const user = currentUser(req)
+  const row = getSession(req.params.id)
+  if (user.role !== 'chw' || !row || row.chw_user_id !== user.id) {
+    return res.status(404).json({ error: 'Check not found' })
+  }
+  if (row.status !== 'reviewed') {
+    return res.status(400).json({ error: 'Save the check first' })
+  }
+  const clinic = db.prepare('SELECT pcp_provider_id FROM patients WHERE id = ?').get(row.patient_id)
+  if (!clinic?.pcp_provider_id) {
+    return res.status(400).json({ error: 'This patient has no clinic on record yet' })
+  }
+  if (!row.sent_to_clinic_at) {
+    db.prepare('UPDATE triage_sessions SET sent_to_clinic_at = ?, clinic_provider_id = ? WHERE id = ?').run(
+      new Date().toISOString(),
+      clinic.pcp_provider_id,
+      row.id,
+    )
+  }
+  res.json({ session: toSession(getSession(row.id)) })
 })
 
 // GET /api/triage/patients — patients this CHW looks after

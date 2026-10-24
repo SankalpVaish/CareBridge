@@ -18,6 +18,9 @@ import {
 } from './search.js'
 import { TrustBadge, VerificationLine, WarningSigns } from './TrustPanel.jsx'
 import HowWeRank from './HowWeRank.jsx'
+import TripPlan from './TripPlan.jsx'
+import { useLoopStats, withLoopStats } from './loopStats.js'
+import { doctorsFor } from './doctors.js'
 
 const isVerified = (p) => p.verification.status === 'verified'
 const hasKnownDistance = (p) => typeof p.distanceMiles === 'number'
@@ -40,15 +43,20 @@ export default function FindPage() {
   const fromCheck = searchParams.get('specialty')
   const urgencyParam = searchParams.get('urgency')
   const urgency = URGENCY_LABELS[urgencyParam] ? urgencyParam : 'routine'
-  const [query, setQuery] = useState(fromCheck ?? 'cardiology')
+  // ?q= restores a search, e.g. coming back from a provider page.
+  const [query, setQuery] = useState(searchParams.get('q') ?? fromCheck ?? 'cardiology')
   // On by default: unverified listings are hidden unless the user asks (PLAN §6, §9).
   const [verifiedOnly, setVerifiedOnly] = useState(true)
   const [schemeOnly, setSchemeOnly] = useState(false)
   const [maxMiles, setMaxMiles] = useState(patient.maxTravelMiles ?? null)
   const [showHowWeRank, setShowHowWeRank] = useState(false)
 
+  // Live loop-closure numbers from real referrals (O7, O8); seed values if offline.
+  const loop = useLoopStats()
+
   const view = useMemo(() => {
-    const base = searchProviders(providers, query).filter(
+    const live = withLoopStats(providers, loop.stats)
+    const base = searchProviders(live, query).filter(
       schemeOnly ? acceptsSchemeOf(patient) : () => true,
     )
     const inRange = base.filter((p) => isWithinTravel(p, maxMiles))
@@ -66,7 +74,7 @@ export default function FindPage() {
       hiddenUnverified: candidates.length - shown.length,
       hiddenFar: widened ? 0 : outOfRange.length,
     }
-  }, [query, verifiedOnly, schemeOnly, maxMiles, patient, urgency])
+  }, [query, verifiedOnly, schemeOnly, maxMiles, patient, urgency, loop.stats])
 
   const schemeNames = patient.schemeIds.map((id) => byId.scheme(id)?.name ?? id).join(', ')
 
@@ -145,6 +153,9 @@ export default function FindPage() {
         <p className="mt-3 text-xs text-slate-500">
           Distances are from {patient.location} (Maria’s town). Ranked by
           evidence, never by payment.{' '}
+          {loop.live
+            ? 'Findings-sent-back numbers are live from referrals. '
+            : 'Findings-sent-back numbers are demo values (server not running). '}
           <button
             type="button"
             onClick={() => setShowHowWeRank(true)}
@@ -200,7 +211,11 @@ export default function FindPage() {
                     {score != null && (
                       <span className="text-sm font-semibold text-slate-400">#{i + 1}</span>
                     )}
-                    <h2 className="font-semibold text-slate-900">{p.name}</h2>
+                    <h2 className="font-semibold text-slate-900">
+                      <Link to={profileLink(p, offers)} className="hover:underline">
+                        {p.name}
+                      </Link>
+                    </h2>
                     <TrustBadge provider={p} />
                   </div>
                   <VerificationLine provider={p} />
@@ -254,6 +269,14 @@ export default function FindPage() {
                 })}
               </ul>
 
+              {/* Doctors here (B-14): who treats the searched treatment */}
+              {isVerified(p) && <DoctorsLine provider={p} offers={offers} query={query} />}
+
+              {/* Trip plan (O3): only for verified providers */}
+              {isVerified(p) && hasKnownDistance(p) && (
+                <TripPlan patient={patient} provider={p} compact />
+              )}
+
               <WarningSigns provider={p} />
             </Card>
           )
@@ -268,6 +291,31 @@ export default function FindPage() {
 
       <HowWeRank open={showHowWeRank} onClose={() => setShowHowWeRank(false)} />
     </div>
+  )
+}
+
+/**
+ * Link to a provider's page. The search goes along only when it names a
+ * treatment the provider offers, so the page can show who does it.
+ */
+function profileLink(provider, offers) {
+  const base = `/find/provider/${encodeURIComponent(provider.id)}`
+  return offers.length > 0 ? `${base}?service=${encodeURIComponent(offers[0])}` : base
+}
+
+/** "3 doctors · 2 do Echocardiogram · see doctors" */
+function DoctorsLine({ provider, offers, query }) {
+  const all = doctorsFor(provider.id, offers.length > 0 ? query : '')
+  if (all.length === 0) return null
+  const treating = all.filter((d) => d.treatsService).length
+  return (
+    <p className="mt-2 text-sm text-slate-700">
+      👩‍⚕️ {all.length} {all.length === 1 ? 'doctor' : 'doctors'}
+      {offers.length > 0 && ` · ${treating} do ${offers.join(', ')}`} ·{' '}
+      <Link to={profileLink(provider, offers)} className="font-medium text-brand-600 hover:underline">
+        See doctors and their record →
+      </Link>
+    </p>
   )
 }
 

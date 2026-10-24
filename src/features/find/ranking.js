@@ -65,10 +65,14 @@ function scoreFactors(provider, patient) {
     }
   } else {
     const pct = Math.round(provider.loopClosureRate * 100)
+    // Live counts from real referrals when the server has them (loop stats).
+    const counts = provider.loopCounts
     factors.loopClosure = {
       score: clamp01(provider.loopClosureRate),
       reason: {
-        text: `Sent findings back for ${pct}% of referrals`,
+        text: counts
+          ? `Sent findings back for ${counts.returned} of ${counts.seen} referred patients`
+          : `Sent findings back for ${pct}% of referrals`,
         tone: pct >= 75 ? 'good' : pct >= 50 ? 'neutral' : 'warn',
       },
     }
