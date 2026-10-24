@@ -70,7 +70,7 @@ const STRINGS = {
     'sym.matched': 'Matched your words:',
     'sym.flagged': 'Flagged because you mentioned:',
     'sym.notDiagnosis':
-      'Guidance only — not a diagnosis. Clinical decisions stay with a qualified clinician (X-1).',
+      'Guidance only — not a diagnosis. Clinical decisions stay with a qualified clinician.',
     'sym.noKey':
       'No LLM key found — using the offline keyword helper. Add VITE_GROQ_API_KEY to .env.local for AI suggestions.',
     'sym.errFallback': 'Something went wrong. A general doctor is a safe first step.',
@@ -186,7 +186,7 @@ const STRINGS = {
     'sym.matched': 'Coincide con sus palabras:',
     'sym.flagged': 'Marcado porque usted mencionó:',
     'sym.notDiagnosis':
-      'Solo orientación — no es un diagnóstico. Las decisiones clínicas quedan con un profesional calificado (X-1).',
+      'Solo orientación — no es un diagnóstico. Las decisiones clínicas quedan con un profesional calificado.',
     'sym.noKey':
       'No se encontró clave de LLM — usando el ayudante sin conexión. Agregue VITE_GROQ_API_KEY a .env.local para sugerencias con IA.',
     'sym.errFallback': 'Algo salió mal. Un médico general es un buen primer paso.',

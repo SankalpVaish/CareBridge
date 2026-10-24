@@ -10,7 +10,6 @@ const sections = [
     bar: 'bg-care',
     blurb:
       'Help patients recognize what care they need and understand the full cost, coverage, and financial aid.',
-    observations: ['O1', 'O5', 'O6', 'O10'],
   },
   {
     to: '/find',
@@ -19,7 +18,6 @@ const sections = [
     bar: 'bg-find',
     blurb:
       'Find the nearest centre that offers the treatment you need, and check that it is legitimate before you travel or pay.',
-    observations: ['O2', 'O3', 'O4'],
   },
   {
     to: '/coordinate',
@@ -28,7 +26,6 @@ const sections = [
     bar: 'bg-coordinate',
     blurb:
       'Track referrals, schedule appointments, plan travel and telehealth, and keep care teams in sync.',
-    observations: ['O7', 'O8', 'O9', 'O10'],
   },
 ]
 
@@ -84,11 +81,6 @@ export default function Home() {
             <div className={`h-1 w-12 rounded ${s.bar} mb-3`} aria-hidden="true" />
             <h2 className={`text-xl font-bold ${s.accent}`}>{s.title}</h2>
             <p className="mt-2 text-sm text-slate-600">{s.blurb}</p>
-            <div className="mt-3 flex flex-wrap gap-1">
-              {s.observations.map((o) => (
-                <Badge key={o}>{o}</Badge>
-              ))}
-            </div>
             <span className="mt-4 inline-block text-sm font-medium text-brand-600 group-hover:underline">
               Open section →
             </span>

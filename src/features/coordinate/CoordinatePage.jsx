@@ -483,7 +483,7 @@ function MissingInfo({ referral, canEdit, apply }) {
   return (
     <section className="mt-5 rounded-lg bg-amber-50 p-3">
       <h3 className="text-sm font-medium text-amber-900">
-        Information the specialist still needs (C-3)
+        Information the specialist still needs
       </h3>
 
       {referral.missingInfo.length === 0 ? (
@@ -562,7 +562,7 @@ function StallPanel({ referral, canEdit, apply, isStalled }) {
   return (
     <section className="mt-5 rounded-lg border border-slate-200 p-3">
       <form onSubmit={stall}>
-        <h3 className="text-sm font-medium text-slate-900">Mark stalled (C-2, C-4)</h3>
+        <h3 className="text-sm font-medium text-slate-900">Mark stalled</h3>
         <p className="mt-1 text-xs text-slate-500">
           Record who the referral is waiting on and why, so follow-up has an owner.
         </p>
@@ -618,7 +618,7 @@ function TravelCard({ referral }) {
         <p className="mt-2 text-sm text-slate-600">No trip details for this referral yet.</p>
       )}
       <p className="mt-3 text-xs text-slate-500">
-        A companion and a day off work add to the real cost (C-11).
+        A companion and a day off work add to the real cost.
       </p>
     </Card>
   )
@@ -633,7 +633,7 @@ function TelehealthCard({ referral }) {
         video visit is an option.
       </p>
       <p className="mt-3 text-xs text-slate-500">
-        What can safely happen remotely is a clinical judgment (C-12, X-1).
+        Whether a visit can safely happen by video is the specialist’s decision.
       </p>
     </Card>
   )

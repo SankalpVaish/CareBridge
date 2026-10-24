@@ -155,8 +155,8 @@ export function buildCostInputs(patient, provider) {
       worst: r(lostWages * 2), // the trip or a follow-up runs long
       certain: false,
       note: {
-        en: 'Time off work, and a companion may lose a day too (C-11).',
-        es: 'Tiempo sin trabajar, y un acompañante también puede perder un día (C-11).',
+        en: 'Time off work, and a companion may lose a day too.',
+        es: 'Tiempo sin trabajar, y un acompañante también puede perder un día.',
       },
     },
   ]

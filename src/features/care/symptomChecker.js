@@ -348,13 +348,13 @@ export function suggestCareType(text, code = 'en') {
     suggestNotes: {
       en: (fs) => [
         `A good first step is to see ${fs}.`,
-        'Seeing the right kind of doctor first can save a wasted trip and money (A-4).',
-        'The sooner you ask, the more options you usually have — it rarely helps to wait (A-1).',
+        'Seeing the right kind of doctor first can save a wasted trip and money.',
+        'The sooner you ask, the more options you usually have — it rarely helps to wait.',
       ],
       es: (fs) => [
         `Un buen primer paso es ver ${fs}.`,
-        'Ver al tipo de médico correcto primero puede ahorrar un viaje y dinero (A-4).',
-        'Mientras antes pregunte, más opciones suele tener — rara vez ayuda esperar (A-1).',
+        'Ver al tipo de médico correcto primero puede ahorrar un viaje y dinero.',
+        'Mientras antes pregunte, más opciones suele tener — rara vez ayuda esperar.',
       ],
     },
     unclearHeadline: {

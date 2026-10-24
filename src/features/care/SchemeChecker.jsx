@@ -28,7 +28,6 @@ export default function SchemeChecker({ patient }) {
     <Card className="lg:col-span-2">
       <div className="flex items-center justify-between gap-2">
         <h2 className="font-semibold text-slate-900">{t('aid.title')}</h2>
-        <Badge tone="slate">A-9..A-12</Badge>
       </div>
       <div className="mt-1 flex items-start gap-1">
         <p className="text-sm text-slate-600">{t('aid.intro')}</p>
