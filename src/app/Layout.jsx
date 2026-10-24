@@ -1,4 +1,6 @@
-import { NavLink, Link } from 'react-router-dom'
+import { NavLink, Link, useNavigate } from 'react-router-dom'
+import { useAuth } from './AuthContext.jsx'
+import { USER_ROLE_LABELS } from '../shared/models.js'
 
 const navItems = [
   { to: '/', label: 'Home', end: true },
@@ -14,6 +16,41 @@ function navClass({ isActive }) {
       ? 'bg-brand-600 text-white'
       : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900',
   ].join(' ')
+}
+
+function UserMenu() {
+  const { user, logout } = useAuth()
+  const navigate = useNavigate()
+
+  if (!user) {
+    return (
+      <Link
+        to="/signin"
+        className="rounded-lg bg-brand-600 px-3 py-2 text-sm font-medium text-white hover:bg-brand-700"
+      >
+        Sign in
+      </Link>
+    )
+  }
+
+  return (
+    <div className="flex items-center gap-3">
+      <span className="hidden text-right sm:block">
+        <span className="block text-sm font-medium text-slate-900">{user.name}</span>
+        <span className="block text-xs text-slate-500">{USER_ROLE_LABELS[user.role]}</span>
+      </span>
+      <button
+        type="button"
+        onClick={() => {
+          logout()
+          navigate('/')
+        }}
+        className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+      >
+        Sign out
+      </button>
+    </div>
+  )
 }
 
 export default function Layout({ children }) {
@@ -34,13 +71,16 @@ export default function Layout({ children }) {
             </span>
             <span className="font-semibold">Rural Specialty-Care Navigator</span>
           </Link>
-          <nav aria-label="Main" className="flex gap-1">
-            {navItems.map((item) => (
-              <NavLink key={item.to} to={item.to} end={item.end} className={navClass}>
-                {item.label}
-              </NavLink>
-            ))}
-          </nav>
+          <div className="flex items-center gap-3">
+            <nav aria-label="Main" className="flex gap-1">
+              {navItems.map((item) => (
+                <NavLink key={item.to} to={item.to} end={item.end} className={navClass}>
+                  {item.label}
+                </NavLink>
+              ))}
+            </nav>
+            <UserMenu />
+          </div>
         </div>
       </header>
 

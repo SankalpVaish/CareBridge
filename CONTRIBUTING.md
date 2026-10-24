@@ -7,12 +7,27 @@ mock data. Three people extend it in parallel, one per workstream.
 
 ```bash
 npm install
-npm run dev      # start the dev server (open the printed localhost URL)
+npm run dev:all  # run BOTH the API (port 4000) and the web app (port 5173)
+# or run them separately:
+npm run dev      # frontend only (Vite, port 5173)
+npm run server   # backend only (Express + SQLite, port 4000)
 npm run build    # production build into dist/
-npm run preview  # serve the production build locally
 ```
 
-Requires Node 18+.
+Requires Node 18+. The frontend proxies `/api/*` to the backend in dev, so use
+the Vite URL (http://localhost:5173) in your browser.
+
+## Auth & backend
+
+- Backend is Express + embedded SQLite (`server/`). The database file
+  (`server/data/app.db`) is created and seeded on first boot — it's gitignored.
+- To reset the demo to a clean state, delete `server/data/app.db` and restart
+  the server; it reseeds automatically.
+- Seeded demo accounts (password `demo1234`): `maria@example.com` (patient),
+  `pcp@example.com` (PCP), `specialist@example.com` (specialist).
+- Roles live in the shared contract (`src/shared/models.js`): `patient`, `pcp`,
+  `specialist`. The Coordinate section is role-filtered via the API.
+- `JWT_SECRET` has a dev-only fallback; set it as an env var for any real deploy.
 
 ## Who owns what
 

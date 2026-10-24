@@ -67,6 +67,35 @@
  */
 
 /**
+ * @typedef {'patient'|'pcp'|'specialist'} UserRole
+ *
+ * Roles that access the app (ties to the three people who see a referral):
+ *   - patient:    the person receiving care (e.g. Maria)
+ *   - pcp:        primary-care provider who makes the referral
+ *   - specialist: the specialist the referral is sent to
+ */
+
+/** The three roles, shared by frontend and backend so they never drift. */
+export const USER_ROLES = ['patient', 'pcp', 'specialist']
+
+/** Human-readable role labels. */
+export const USER_ROLE_LABELS = {
+  patient: 'Patient',
+  pcp: 'Primary-care provider',
+  specialist: 'Specialist',
+}
+
+/**
+ * @typedef {Object} User
+ * @property {string} id
+ * @property {string} name
+ * @property {string} email
+ * @property {UserRole} role
+ * @property {string|null} providerId   For pcp/specialist: which Provider they act as (null for patients)
+ * @property {string|null} patientId    For patients: which Patient record is theirs (null for providers)
+ */
+
+/**
  * @typedef {Object} Scheme
  * @property {string} id
  * @property {string} name

@@ -23,3 +23,10 @@ dist-ssr
 *.sln
 *.sw?
 .package-lock.json
+
+# Backend
+.env
+server/data/*.db
+server/data/*.db-journal
+server/data/*.db-wal
+server/data/*.db-shm
