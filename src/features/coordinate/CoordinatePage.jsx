@@ -22,6 +22,13 @@ import { URGENCY_LABELS } from '../../shared/models.js'
 import TripPlan from '../find/TripPlan.jsx'
 import { rankProviders } from '../find/ranking.js'
 import { searchProviders } from '../find/search.js'
+import {
+  CHANGE_TYPES,
+  MAX_CHANGES,
+  MAX_FIELD,
+  describeChange,
+} from './medicationChanges.js'
+import { selfMedicationNote } from '../care/symptomChecker.js'
 
 export default function CoordinatePage() {
   const { user } = useAuth()
@@ -134,6 +141,12 @@ export default function CoordinatePage() {
           <ReferralCard referral={referral} canEdit={canEdit} apply={apply} role={user.role} />
           <TravelCard referral={referral} />
           <TelehealthCard referral={referral} />
+          {/* Reload when findings change, so a new medicine change shows at once (O9) */}
+          <MedicineHistory
+            patientId={referral.patientId}
+            role={user.role}
+            refreshKey={JSON.stringify(referral.findings?.medicationChanges ?? [])}
+          />
         </div>
       )}
     </div>
@@ -387,10 +400,11 @@ function Findings({ referral, role, apply }) {
   const [editing, setEditing] = useState(false)
   const [forClinician, setForClinician] = useState(f?.forClinician ?? '')
   const [forPatient, setForPatient] = useState(f?.forPatient ?? '')
+  const [changes, setChanges] = useState(f?.medicationChanges ?? [])
 
   async function submit(e) {
     e.preventDefault()
-    await apply({ action: 'returnFindings', forClinician, forPatient })
+    await apply({ action: 'returnFindings', forClinician, forPatient, medicationChanges: changes })
     setEditing(false)
   }
 
@@ -412,6 +426,7 @@ function Findings({ referral, role, apply }) {
             <p className="text-xs font-medium text-green-800">In plain words, for the patient</p>
             <p className="whitespace-pre-line text-slate-800">{f.forPatient}</p>
           </div>
+          <ChangeList changes={f.medicationChanges ?? []} clinician={role === 'pcp' || role === 'specialist'} />
           <p className="text-xs text-slate-500">
             Sent by {f.by} on {f.at}, to the referring clinic and the health worker.
           </p>
@@ -453,6 +468,7 @@ function Findings({ referral, role, apply }) {
               className="mt-1 w-full rounded-lg border border-slate-300 px-2 py-1.5"
             />
           </label>
+          <ChangeEditor changes={changes} onChange={setChanges} />
           <div className="flex flex-wrap gap-2">
             <Button type="submit">Approve and send back</Button>
             {editing && (
@@ -468,6 +484,141 @@ function Findings({ referral, role, apply }) {
         </form>
       )}
     </section>
+  )
+}
+
+/**
+ * Medicine changes in the findings form (O9, spec Req 1.1, 1.2). Optional:
+ * findings without changes work as before. Checked again on the server.
+ */
+function ChangeEditor({ changes, onChange }) {
+  const update = (i, fields) => onChange(changes.map((c, j) => (j === i ? { ...c, ...fields } : c)))
+  const blank = { medicine: '', change: 'started', from: '', reasonClinical: '', reasonPlain: '' }
+  const input = 'mt-1 w-full rounded-lg border border-slate-300 px-2 py-1.5'
+
+  return (
+    <fieldset className="rounded-lg border border-slate-200 p-2">
+      <legend className="px-1 font-medium text-slate-700">Medicine changes (optional)</legend>
+      <p className="text-xs text-slate-500">
+        Record any medicine you started, stopped, or changed, and why, so the next doctor and the
+        patient know what was tried.
+      </p>
+      {changes.map((c, i) => (
+        <div key={i} className="mt-2 grid gap-2 rounded-lg bg-white p-2 sm:grid-cols-2">
+          <label className="block">
+            <span className="text-xs text-slate-600">Medicine</span>
+            <input value={c.medicine} maxLength={MAX_FIELD} onChange={(e) => update(i, { medicine: e.target.value })} className={input} />
+          </label>
+          <label className="block">
+            <span className="text-xs text-slate-600">What changed</span>
+            <select value={c.change} onChange={(e) => update(i, { change: e.target.value })} className={input}>
+              {Object.entries(CHANGE_TYPES).map(([key, label]) => (
+                <option key={key} value={key}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          </label>
+          {c.change === 'switched' && (
+            <label className="block sm:col-span-2">
+              <span className="text-xs text-slate-600">Switched from</span>
+              <input value={c.from ?? ''} maxLength={MAX_FIELD} onChange={(e) => update(i, { from: e.target.value })} className={input} />
+            </label>
+          )}
+          <label className="block">
+            <span className="text-xs text-slate-600">Reason, for the clinic</span>
+            <input value={c.reasonClinical} maxLength={MAX_FIELD} onChange={(e) => update(i, { reasonClinical: e.target.value })} className={input} />
+          </label>
+          <label className="block">
+            <span className="text-xs text-slate-600">Reason, in plain words for the patient</span>
+            <input value={c.reasonPlain} maxLength={MAX_FIELD} onChange={(e) => update(i, { reasonPlain: e.target.value })} className={input} />
+          </label>
+          <div className="sm:col-span-2">
+            <button
+              type="button"
+              onClick={() => onChange(changes.filter((_, j) => j !== i))}
+              className="text-xs font-medium text-red-700 hover:underline"
+            >
+              Remove this change
+            </button>
+          </div>
+        </div>
+      ))}
+      {changes.length < MAX_CHANGES && (
+        <button
+          type="button"
+          onClick={() => onChange([...changes, blank])}
+          className="mt-2 text-sm font-medium text-brand-600 hover:underline"
+        >
+          + Add a medicine change
+        </button>
+      )}
+    </fieldset>
+  )
+}
+
+/**
+ * Medicine changes as each person should see them (Req 2.1–2.3). Patients and
+ * health workers get the plain reason (the server already removed the clinical
+ * one) and the fixed advice not to change medicine on their own.
+ */
+function ChangeList({ changes, clinician, title = 'Medicine changes', showWhen = false }) {
+  if (!changes || changes.length === 0) return null
+  return (
+    <div className="rounded-lg border border-amber-200 bg-amber-50 p-2">
+      <p className="text-xs font-medium text-amber-900">{title}</p>
+      <ul className="mt-1 space-y-2">
+        {changes.map((c, i) => (
+          <li key={i} className="text-slate-800">
+            <p className="font-medium">{describeChange(c)}</p>
+            <p className="text-sm">Why: {c.reasonPlain}</p>
+            {clinician && c.reasonClinical && (
+              <p className="text-xs text-slate-600">For the clinic: {c.reasonClinical}</p>
+            )}
+            {showWhen && (
+              <p className="text-xs text-slate-500">
+                {c.at} · {c.by}, {c.providerName}
+              </p>
+            )}
+          </li>
+        ))}
+      </ul>
+      {!clinician && <p className="mt-2 text-xs font-medium text-amber-900">{selfMedicationNote('en')}</p>}
+    </div>
+  )
+}
+
+/** Every medicine change for this patient, across doctors (Req 3.1). */
+function MedicineHistory({ patientId, role, refreshKey }) {
+  const [history, setHistory] = useState([])
+  useEffect(() => {
+    let active = true
+    api
+      .medicationHistory(patientId)
+      .then(({ history }) => active && setHistory(history))
+      .catch(() => active && setHistory([]))
+    return () => {
+      active = false
+    }
+  }, [patientId, refreshKey])
+
+  if (history.length === 0) return null
+  return (
+    <Card className="lg:col-span-2">
+      <h2 className="font-semibold text-slate-900">Medicine history</h2>
+      <p className="mt-1 text-sm text-slate-600">
+        Every medicine change recorded for this patient, newest first, so a new doctor knows what
+        was tried and why.
+      </p>
+      <div className="mt-3">
+        <ChangeList
+          changes={history}
+          clinician={role === 'pcp' || role === 'specialist'}
+          title={`${history.length} change${history.length === 1 ? '' : 's'}`}
+          showWhen
+        />
+      </div>
+    </Card>
   )
 }
 

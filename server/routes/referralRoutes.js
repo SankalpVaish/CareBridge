@@ -16,6 +16,11 @@ import { Router } from 'express'
 import { randomUUID } from 'node:crypto'
 import db from '../db.js'
 import { requireAuth } from '../auth.js'
+// Same rules as the UI (spec: .kiro/specs/medication-change-notes).
+import {
+  cleanMedicationChanges,
+  visibleChanges,
+} from '../../src/features/coordinate/medicationChanges.js'
 
 const router = Router()
 router.use(requireAuth)
@@ -56,6 +61,8 @@ function toReferral(row, user) {
     findings: findings && {
       forPatient: findings.forPatient,
       forClinician: clinician ? findings.forClinician : undefined,
+      // Medicine changes, filtered by role (O9, Req 2.1, 2.2)
+      medicationChanges: visibleChanges(findings.medicationChanges, user?.role),
       by: findings.by,
       at: findings.at,
     },
@@ -123,6 +130,59 @@ router.get('/', (req, res) => {
       .all(user.id)
   }
   res.json({ referrals: rows.map((r) => toReferral(r, user)) })
+})
+
+/**
+ * Who may see a patient's medicine history (O9, Req 3.2): the patient, their
+ * health workers, their own clinic, and specialists with a referral for them.
+ */
+function canSeePatientHistory(user, patientId) {
+  if (user.role === 'patient') return user.patient_id === patientId
+  if (user.role === 'chw') return chwServesPatient(user.id, patientId)
+  if (user.role === 'pcp') {
+    const p = db.prepare('SELECT pcp_provider_id FROM patients WHERE id = ?').get(patientId)
+    if (p?.pcp_provider_id === user.provider_id) return true
+    return Boolean(
+      db
+        .prepare('SELECT 1 FROM referrals WHERE patient_id = ? AND from_provider_id = ? AND is_history = 0')
+        .get(patientId, user.provider_id),
+    )
+  }
+  if (user.role === 'specialist') {
+    return Boolean(
+      db
+        .prepare('SELECT 1 FROM referrals WHERE patient_id = ? AND to_provider_id = ? AND is_history = 0')
+        .get(patientId, user.provider_id),
+    )
+  }
+  return false
+}
+
+// GET /api/referrals/patient/:patientId/medication-history — newest first (O9, Req 3.1–3.4)
+// Defined before '/:id' so that route doesn't capture it.
+router.get('/patient/:patientId/medication-history', (req, res) => {
+  const user = currentUser(req)
+  const { patientId } = req.params
+  if (!canSeePatientHistory(user, patientId)) {
+    return res.status(404).json({ error: 'Patient not found' })
+  }
+  const rows = db
+    .prepare(`
+      SELECT r.findings, p.name AS provider_name
+      FROM referrals r JOIN providers p ON p.id = r.to_provider_id
+      WHERE r.patient_id = ? AND r.is_history = 0 AND r.findings IS NOT NULL
+    `)
+    .all(patientId)
+
+  const history = []
+  for (const row of rows) {
+    const f = JSON.parse(row.findings)
+    for (const c of visibleChanges(f.medicationChanges, user.role)) {
+      history.push({ ...c, at: f.at, by: f.by, providerName: row.provider_name })
+    }
+  }
+  history.sort((a, b) => (a.at < b.at ? 1 : a.at > b.at ? -1 : 0))
+  res.json({ history })
 })
 
 // GET /api/referrals/:id
@@ -249,8 +309,20 @@ router.patch('/:id', (req, res) => {
     if (!forClinician || !forPatient) {
       return res.status(400).json({ error: 'Write both the clinic version and the plain-language version' })
     }
+    // Optional medicine-change notes, saved with the approved findings (O9, Req 1.3, 1.5)
+    let medicationChanges
+    try {
+      medicationChanges = cleanMedicationChanges(req.body.medicationChanges)
+    } catch (err) {
+      return res.status(400).json({ error: err.message })
+    }
     const first = !findings
-    findings = { forClinician, forPatient, by: user.name, at: today() }
+    findings = { forClinician, forPatient, medicationChanges, by: user.name, at: today() }
+    if (medicationChanges.length > 0) {
+      ref.timeline.push(
+        `${today()} — ${user.name} recorded ${medicationChanges.length} medicine change${medicationChanges.length === 1 ? '' : 's'}`,
+      )
+    }
     if (ref.status === 'seen') ref.status = 'findings_returned'
     ref.timeline.push(
       `${today()} — ${user.name} ${first ? 'sent' : 'updated'} findings: to ${providerName(row.from_provider_id)} and the health worker, with a plain-language version for the patient`,

@@ -1,0 +1,15 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Shared data contract and safety reminder",
+      "trigger": "PreToolUse",
+      "description": "Before the agent writes a file, remind it of the shared-contract and clinical-safety rules.",
+      "matcher": "fs_write|str_replace|fs_append",
+      "action": {
+        "type": "agent",
+        "prompt": "Before this write: (1) If it touches src/shared/models.js, src/data/mockData.js, or server/db.js, follow .kiro/steering/data-contract.md: add new fields to the JSDoc and the factory default, keep explicit nulls, only add columns, and tell the user which teammates are affected. (2) If it changes symptom-check, AI, ranking, findings, or medicine code, check it against .kiro/steering/safety.md: no diagnosis, no medicine suggestions, emergency rules before AI, no star ratings, clinicians approve. (3) If it adds visible UI text, follow .kiro/steering/ui-copy.md: no research codes, plain words, en and es entries for translated pages."
+      }
+    }
+  ]
+}

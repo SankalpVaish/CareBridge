@@ -50,11 +50,8 @@ so the site stays clean for judging.
 
 ## Future work
 
-- [ ] **O9 / C-10..C-13 — Different prescriptions for the same condition.** When a
-  specialist changes a medicine, record "changed X to Y because…" with the
-  findings, show the reason to the clinic and the health worker, and give the
-  patient a plain-language version, so a new doctor knows what was tried before.
-  Needs a medication-change field on the findings and the same approve-before-send
-  step. Never suggest changes ourselves (X-1). (PLAN.md screen C7, gap G6.)
+- [x] **O9 / C-10..C-13 — Different prescriptions for the same condition.** Built
+  from the spec in `.kiro/specs/medication-change-notes/`: medicine-change notes
+  with the findings, role-based reasons, and a medicine history across doctors.
 - [ ] AI draft of the plain-language findings, for the specialist to edit and approve.
 - [ ] Flag referrals with no response after a set time (e.g. 3 days) on Coordinate.

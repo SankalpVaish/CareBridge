@@ -1,0 +1,16 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Run tests on logic change",
+      "trigger": "PostFileSave",
+      "description": "When safety, cost, ranking, travel, referral, or server logic is saved, run every unit test and property-based test.",
+      "matcher": "(symptomChecker|outputSafety|llmSymptomChecker|costEstimator|coverage|aid|ranking|travel|search|trust|medicationChanges|referralWorkflow)\\.js$|server[\\\\/].*\\.js$|tests[\\\\/].*\\.mjs$",
+      "action": {
+        "type": "command",
+        "command": "node scripts/run-tests.mjs",
+        "timeout": 180
+      }
+    }
+  ]
+}

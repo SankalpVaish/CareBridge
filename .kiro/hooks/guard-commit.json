@@ -1,0 +1,16 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Block commits with conflicts or a broken build",
+      "trigger": "PreToolUse",
+      "description": "Before the agent runs a shell command, block git commit or git push if merge-conflict markers are in the repo or the front end doesn't build.",
+      "matcher": "execute_pwsh|control_pwsh_process",
+      "action": {
+        "type": "command",
+        "command": "node scripts/hooks/guard-commit.mjs",
+        "timeout": 90
+      }
+    }
+  ]
+}

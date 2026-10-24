@@ -23,7 +23,8 @@ export default function TripPlan({ patient, provider, appointmentTime, compact =
   const summary = best ? (
     <>
       {best.icon} {best.label}: {best.roundTripCostUsd === 0 ? 'free' : money(best.roundTripCostUsd)} round
-      trip · leave by {formatTime(best.leaveBy)} · {formatDuration(best.oneWayMinutes)} each way
+      trip · leave by {formatTime(best.leaveBy)}
+      {best.leavesDayBefore ? ' the day before' : ''} · {formatDuration(best.oneWayMinutes)} each way
     </>
   ) : (
     <>None of your usual ways to travel can make this trip. Ask your clinic about transport.</>
@@ -77,7 +78,9 @@ function OptionList({ plan }) {
           </div>
           {o.available ? (
             <p className="text-xs text-slate-600">
-              Leave by {formatTime(o.leaveBy)} · arrive {formatTime(o.arrive)} ·{' '}
+              Leave by {formatTime(o.leaveBy)}
+              {o.leavesDayBefore && <span className="font-medium text-amber-700"> the day before</span>} ·
+              arrive {formatTime(o.arrive)} ·{' '}
               {formatDuration(o.oneWayMinutes)} each way
             </p>
           ) : (

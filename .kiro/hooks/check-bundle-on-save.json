@@ -1,0 +1,16 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Check bundle on save",
+      "trigger": "PostFileSave",
+      "description": "When a front-end source file is saved, bundle the whole app with esbuild to catch broken imports, missing exports, and syntax errors in about a second.",
+      "matcher": "src[\\\\/].*\\.(js|jsx)$",
+      "action": {
+        "type": "command",
+        "command": "node scripts/check-bundle.mjs",
+        "timeout": 60
+      }
+    }
+  ]
+}

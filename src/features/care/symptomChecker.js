@@ -46,7 +46,7 @@ import { SPECIALTY_LABELS } from '../../shared/models.js'
  * Phrases are intentionally plain and lowercase. Keep this conservative:
  * when in doubt, it is safer to send someone to emergency care.
  */
-const EMERGENCY_SIGNS = [
+export const EMERGENCY_SIGNS = [
   'chest pain',
   'pain in chest', // also matches "pain in my chest"
   'crushing chest',

@@ -74,6 +74,7 @@ The app has three sections. People can use it as a **patient**, a **community he
 - **Clinic inbox:** checks sent by health workers arrive here. The clinician decides whether to refer, and picks a specialist ranked the same way as Find & Trust.
 - **Referral tracker:** every stage from *requested* to *followed up*, a list of information the specialist is still waiting for, and a "mark stalled" option that records who the referral is waiting on and why.
 - **Findings back:** after the visit, the specialist writes a version for the clinic and a plain-language version for the patient, and approves both. The clinic and health worker receive them, and the patient sees the plain version.
+- **Medicine changes explained:** the specialist can record each medicine they changed and why. A **medicine history** shows every change across doctors, so a new doctor knows what was tried and the patient understands why.
 - **Loop-closure numbers are live.** Each completed findings return updates the "findings sent back" figure that Find & Trust uses in its ranking.
 
 ---
@@ -106,7 +107,7 @@ These are the ten observations from our research ([docs/research.md](docs/resear
 | **O6** | Insurance, schemes, and aid exist, but people can't tell what they qualify for or how to apply. | Help paying (have / can apply / other) with reasons, steps, and document checklists; Check my coverage for deductible, copay, network, and approvals. | ✅ Answered |
 | **O7** | Referrals stall, and clinics rarely learn whether the patient was seen. | Health worker sends the check to the clinic; clinic inbox; referral to a ranked, verified specialist; referral stages, missing-information list, who a stalled referral is waiting on and why, and a timeline visible to everyone involved. | ✅ Answered |
 | **O8** | Patients don't understand the findings, and the clinic and health worker never hear them. | Specialist sends findings back in a clinic version and a plain-language version, approved before sending; the clinic and health worker receive them; live "findings sent back" figures. | ✅ Answered |
-| **O9** | Different doctors prescribe different medicines, so patients lose trust and switch doctors. | Not built yet. Planned: when a specialist changes a medicine, record what changed and why, and explain it to the clinic, the health worker, and the patient. The app will never suggest changes itself. | 🔜 Planned |
+| **O9** | Different doctors prescribe different medicines, so patients lose trust and switch doctors. | With the findings, the specialist records each medicine they started, stopped, or changed, and why: a reason for the clinic and a plain-language reason for the patient. A medicine history shows every change across doctors, so a new doctor knows what was tried. Patients and health workers see the plain reasons with "don't change medicine on your own". The app only records what clinicians decide; it never suggests medicines. | ✅ Answered |
 | **O10** | Paperwork (referral letters, approvals, claims) takes clinic time and delays care. | The health worker's check carries over so no one asks twice; the referral reason is filled in from the check; missing-information list; document checklists; approval warnings in Check my coverage. Referral letters and claim forms aren't generated yet. | ⚠️ Partly |
 
 ---
@@ -173,8 +174,19 @@ src/
     coordinate/   Coordinate: clinic inbox, referrals, findings
   shared/         Data shapes, shared UI parts, API client
   data/           Demo data (patients, providers, doctors, programmes, transport)
-server/           API: sign-in, symptom checks, referrals, loop-closure figures
+server/           API: sign-in, symptom checks, referrals, loop-closure figures, AI proxy
+tests/            Property-based tests (safety, ranking, costs, travel, medicine changes)
+scripts/          Checks: bundle, conflict markers, test runner, hook scripts
 docs/             Research
+.kiro/            Kiro steering docs, agent hooks, and specs
+```
+
+### Checks and tests
+
+```bash
+node scripts/run-tests.mjs        # unit and property-based tests
+node scripts/check-bundle.mjs     # does the front end build?
+node scripts/check-conflicts.mjs  # any merge-conflict markers left?
 ```
 
 Built with React, Vite, Tailwind CSS, Express, and SQLite.
@@ -187,7 +199,7 @@ Built with React, Vite, Tailwind CSS, Express, and SQLite.
 - **One demo region** (United States). Most of what changes by country is kept in the demo data so other regions can be added.
 - **Spanish** covers the home page and Care & Cost. Find & Trust and Coordinate are in English for now.
 - **Travel times** use straight-line distance and a fixed speed for each type of transport.
-- **Coming next:** medicine-change explanations (O9), drafted referral letters and claim forms (O10), an AI draft of the plain-language findings for the specialist to edit, a flag for referrals with no response after a few days, and moving the AI call to the server.
+- **Coming next:** drafted referral letters and claim forms (O10), an AI draft of the plain-language findings for the specialist to edit, a flag for referrals with no response after a few days, and moving the AI call to the server.
 
 ---
 
@@ -196,5 +208,6 @@ Built with React, Vite, Tailwind CSS, Express, and SQLite.
 | Document | What's in it |
 |---|---|
 | [docs/research.md](docs/research.md) | The full problem research: key facts, scope, observations, stakeholders, and research questions |
+| [.kiro/KIRO_USAGE.md](.kiro/KIRO_USAGE.md) | How we used Kiro: specs, steering, hooks, and property-based tests |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | How to work on the code |
 | [TODO.md](TODO.md) | Open tasks |

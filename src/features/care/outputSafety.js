@@ -10,6 +10,8 @@
  * AI wording; letting a diagnosis through is the failure we must avoid.
  * Pure module, no I/O.
  */
+import { SPECIALTY_LABELS } from '../../shared/models.js'
+import { careTypeLabel } from './symptomChecker.js'
 
 const CONDITIONS = [
   'cancer', 'tumor', 'tumour', 'malignan', 'diabetes', 'diabetic', 'angina',
@@ -51,7 +53,13 @@ const PATTERNS = [
   /\busted (?:tiene|padece|sufre)\b/,
   /\bdiagnosticad[oa]\b|\bsu diagnostico es\b|\bdiagnostico de\b/,
   /\b(?:le )?recet(?:o|amos|ara|amos)\b/,
-  /\byou (?:may |might |probably |likely )?(?:have|are suffering from)\b/,
+  // "You may have…" guesses at a diagnosis; plain "you have" is everyday
+  // English ("if you have a health worker"), so it only counts before a
+  // diagnosis word. Condition names themselves are caught by the term list.
+  // Narrowed after tests/safety.pbt.mjs flagged our own emergency advice.
+  /\byou (?:may|might|probably|likely|could) (?:have|be suffering from)\b/,
+  /\byou are suffering from\b/,
+  /\byou have (?:a |an )?(?:condition|disease|disorder|illness|syndrome)\b/,
   /\bsounds like (?:you have|a case of)\b/,
   /\bdiagnos(?:ed|is of|e you)\b/,
   /\bprescri/,
@@ -67,12 +75,36 @@ const TERM_PATTERNS = [...CONDITIONS, ...MEDICINES, ...CONDITIONS_ES, ...MEDICIN
 /** Lowercase and remove accents, so "cáncer" matches "cancer". */
 const plain = (s) => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
 
+/** Every banned condition and medicine term (for tests). */
+export const UNSAFE_TERMS = [...CONDITIONS, ...MEDICINES, ...CONDITIONS_ES, ...MEDICINES_ES]
+
+/**
+ * Our own care-type labels (e.g. "Diabetes / hormone specialist
+ * (endocrinology)", "Cancer specialist (oncology)") name a *kind of doctor*,
+ * not the patient's condition. They're removed before checking, so the AI may
+ * repeat our exact wording; the same words used any other way still count.
+ * Found by the property test "none of the app's own headlines and tips are
+ * flagged as unsafe" (tests/safety.pbt.mjs).
+ */
+let ownLabels = null
+function getOwnLabels() {
+  ownLabels ??= [
+    ...Object.values(SPECIALTY_LABELS),
+    ...['en', 'es'].flatMap((code) => Object.keys(SPECIALTY_LABELS).map((k) => careTypeLabel(k, code))),
+  ]
+    .filter(Boolean)
+    .map(plain)
+    .sort((a, b) => b.length - a.length) // longest first, so nested labels go cleanly
+  return ownLabels
+}
+
 /**
  * @param {string[]} texts  Every string the AI wrote that will be shown.
  * @returns {string[]}      The terms or patterns found; empty means safe.
  */
 export function findUnsafeTerms(texts) {
-  const text = plain(texts.filter((t) => typeof t === 'string').join(' \n '))
+  let text = plain(texts.filter((t) => typeof t === 'string').join(' \n '))
+  for (const label of getOwnLabels()) text = text.split(label).join(' ')
   const hits = TERM_PATTERNS.filter(([, re]) => re.test(text)).map(([t]) => t)
   for (const re of PATTERNS) {
     if (re.test(text)) hits.push(re.source)

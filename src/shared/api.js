@@ -52,4 +52,7 @@ export const api = {
   listClinicInbox: () => request('/triage/inbox'),
   createReferral: (payload) => request('/referrals', { method: 'POST', body: payload }),
   loopStats: () => request('/loop-stats'),
+  // Medicine-change history for one patient (O9)
+  medicationHistory: (patientId) =>
+    request(`/referrals/patient/${encodeURIComponent(patientId)}/medication-history`),
 }

@@ -132,9 +132,11 @@ function scoreFactors(provider, patient) {
   factors.language = {
     score: patient.languages.length ? spoken.length / patient.languages.length : 1,
     reason:
-      missing.length === 0
-        ? { text: `Staff speak ${joinWords(spoken)}`, tone: 'good' }
-        : { text: `No ${joinWords(missing)}-speaking staff`, tone: 'warn' },
+      patient.languages.length === 0
+        ? { text: 'Your languages aren’t recorded yet', tone: 'neutral' }
+        : missing.length === 0
+          ? { text: `Staff speak ${joinWords(spoken)}`, tone: 'good' }
+          : { text: `No ${joinWords(missing)}-speaking staff`, tone: 'warn' },
   }
 
   return factors

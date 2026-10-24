@@ -50,6 +50,7 @@ export function formatDuration(minutes) {
  * @property {number} oneWayMinutes
  * @property {number} roundTripCostUsd
  * @property {string} leaveBy         'HH:MM'
+ * @property {boolean} leavesDayBefore  leaveBy is on the day before the appointment
  * @property {string} arrive          'HH:MM'
  * @property {string[]} notes         Plain-language conditions (days, booking)
  * @property {boolean} needsBooking
@@ -89,6 +90,7 @@ export function planTrip(patient, provider, opts = {}) {
 
     let leaveBy
     let arrive
+    let leavesDayBefore = false
     if (o.kind === 'scheduled') {
       leaveBy = toHhmm(toMinutes(o.departs) - (o.walkMinutes ?? 0))
       arrive = toHhmm(toMinutes(o.departs) + ride)
@@ -102,8 +104,16 @@ export function planTrip(patient, provider, opts = {}) {
         whyNot = `Arrives ${formatTime(arrive)}, too late for a ${formatTime(appointmentTime)} appointment. Ask for a later time.`
       }
     } else {
-      leaveBy = toHhmm(appt - oneWayMinutes - ARRIVE_EARLY_MINUTES)
+      const leaveAt = appt - oneWayMinutes - ARRIVE_EARLY_MINUTES
+      leaveBy = toHhmm(leaveAt)
       arrive = toHhmm(appt - ARRIVE_EARLY_MINUTES)
+      // A long trip to an early appointment can mean setting off the night
+      // before. Without this, "leave by 11:58 pm" read as the same day.
+      // Found by the property test in tests/travel.pbt.mjs.
+      if (leaveAt < 0) {
+        leavesDayBefore = true
+        notes.push('Leave the day before, or ask for a later appointment.')
+      }
       if (o.pickup) notes.push(`${o.pickup}.`)
     }
     if (o.kind === 'booked') {
@@ -119,6 +129,7 @@ export function planTrip(patient, provider, opts = {}) {
       oneWayMinutes,
       roundTripCostUsd,
       leaveBy,
+      leavesDayBefore,
       arrive,
       notes,
       needsBooking: o.kind === 'booked',
