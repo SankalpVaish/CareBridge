@@ -26,7 +26,13 @@ function Logo() {
       <span className="grid h-9 w-9 place-items-center rounded-xl bg-brand-600 text-lg font-bold text-white shadow-sm">
         ✚
       </span>
-      <span className="text-[15px] font-bold tracking-tight text-slate-900">CareBridge</span>
+      <span className="leading-tight">
+        <span className="block text-[15px] font-bold tracking-tight text-slate-900">CareBridge</span>
+        {/* Subtitle only on wide screens, so the menu still fits. */}
+        <span className="hidden text-xs font-medium text-slate-500 xl:block">
+          Rural Specialty Care Navigator
+        </span>
+      </span>
     </Link>
   )
 }
@@ -98,19 +104,6 @@ export default function Layout({ children }) {
       </a>
 
       <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/90 backdrop-blur">
-<<<<<<< HEAD
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
-          <Link to="/" className="flex items-center gap-2">
-            <span className="grid h-8 w-8 place-items-center rounded-lg bg-brand-600 text-white font-bold">
-              +
-            </span>
-            <span className="font-semibold">
-              CareBridge
-              {/* The subtitle hides on small screens so the menu still fits. */}
-              <span className="hidden font-normal text-slate-600 md:inline">: Rural Specialty Care Navigator</span>
-            </span>
-          </Link>
-=======
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3">
           <Logo />
           <nav aria-label="Main" className="hidden items-center gap-1 md:flex">
@@ -121,7 +114,6 @@ export default function Layout({ children }) {
               </NavLink>
             ))}
           </nav>
->>>>>>> dc114d7049922137b1f7ced1afd101fcac0612fd
           <div className="flex items-center gap-3">
             <RegionPill />
             <UserMenu />
