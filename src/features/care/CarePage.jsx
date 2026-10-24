@@ -6,6 +6,7 @@
 import { PageHeader, Card, Badge, money } from '../../shared/ui.jsx'
 import { demoPatient, providers, schemes, byId } from '../../data/mockData.js'
 import { estimateCost } from './costEstimator.js'
+import SymptomChecker from './SymptomChecker.jsx'
 
 export default function CarePage() {
   // Use the cheapest verified cardiology provider for the demo estimate.
@@ -23,21 +24,7 @@ export default function CarePage() {
 
       <div className="grid gap-5 lg:grid-cols-2">
         {/* Symptom recognition (ties to O1, A-1..A-5) */}
-        <Card>
-          <h2 className="font-semibold text-slate-900">What Maria is feeling</h2>
-          <p className="mt-2 text-slate-700">“{demoPatient.primarySymptom}”</p>
-          <div className="mt-3 rounded-lg bg-care/10 p-3 text-sm text-slate-700">
-            <p className="font-medium text-slate-900">Suggested next step</p>
-            <p className="mt-1">
-              These symptoms are often cardiology-related. A primary-care visit
-              can confirm whether a specialist referral is needed.
-            </p>
-            <p className="mt-2 text-xs text-slate-500">
-              Guidance only — not a diagnosis. Clinical decisions stay with a
-              qualified clinician (X-1).
-            </p>
-          </div>
-        </Card>
+        <SymptomChecker initialText={demoPatient.primarySymptom} />
 
         {/* Cost estimate (ties to O8, A-7, A-8) */}
         <Card>

@@ -100,7 +100,7 @@ export const providers = [
     specialties: ['cardiology'],
     services: ['"Heart detox" therapy', 'Chelation therapy'],
     location: 'Online / Unknown',
-    distanceMiles: 0,
+    distanceMiles: null, // no physical address, so distance is unknown
     // Fraud example for Workstream B (O4, B-9, B-12)
     verification: {
       status: 'not_found',
