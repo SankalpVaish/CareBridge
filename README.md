@@ -15,7 +15,7 @@ The research questions and open problems that keep rural patients from getting t
 1. [Overview](#1-overview)
 2. [Problem Statement](#2-problem-statement)
 3. [Scope](#3-scope)
-4. [Key Observations](#4-key-observations)
+4. [Observations](#4-observations)
 5. [Stakeholders](#5-stakeholders)
 6. [Research Questions](#6-research-questions)
    - [6.1 Workstream A: Care Need and Affordability](#61-workstream-a-care-need-and-affordability)
@@ -34,17 +34,18 @@ This document lists the problems we need to understand before we design anything
 
 - has a unique ID, so the team can refer to it in discussion and in later documents;
 - belongs to one workstream, which has a single owner;
-- is linked to at least one observation from the field (Section 7).
+- is linked to the observations it investigates (Section 7).
 
 ## 2. Problem Statement
 
 A rural patient who needs a specialist faces a chain of gaps. Any one of them can delay or stop care:
 
-1. **Recognition.** The patient may not know what is wrong, or what kind of doctor to see.
+1. **Recognition.** The patient may not know how serious a symptom is, or what kind of doctor to see.
 2. **Discovery.** The patient doesn't know which providers exist nearby, or which ones to trust.
 3. **Availability.** The treatment needed may not be offered locally.
 4. **Affordability.** Costs are unclear, budgets are limited, and financial aid is hard to find.
 5. **Coordination.** Once a referral is made, scheduling, travel, and communication between care teams often break down.
+6. **Continuity.** Conflicting prescriptions for the same condition erode trust, so patients switch doctors and restart care.
 
 The result is delayed diagnosis and treatment, wasted trips and money, exposure to fraud, and patients giving up on care altogether.
 
@@ -64,18 +65,29 @@ The result is delayed diagnosis and treatment, wasted trips and money, exposure 
 - **Clinical decisions.** Diagnosis, treatment choice, and prescribing remain with qualified professionals.
 - **Solution design.** Covered in [PLAN.md](PLAN.md).
 
-## 4. Key Observations
+## 4. Observations
 
-| ID | Observation | Workstream |
-|---|---|---|
-| O1 | People often don't know what condition they might have. | A |
-| O2 | People don't know about the many healthcare providers in their area. | B |
-| O3 | Hospitals specialize in different conditions (e.g. neurology, cancer), and it isn't clear which one fits a need. | B |
-| O4 | Doctor availability and quality are hard to find out, so patients can't tell which doctor would serve them best. | B, C |
-| O5 | Several doctors in the same hospital may treat the same condition, and patients have no way to compare them. | B |
-| O6 | Different doctors prescribe different medicines to the same patient, and no single party sees the full picture. | C |
-| O7 | Many treatments aren't available in rural areas. People don't know which reputable hospitals are within reach, and scammers exploit that gap. | B, C |
-| O8 | Costs vary widely, budgets are limited, and the scholarships and financial aid that exist are hard to find. | A |
+Each observation states who is affected, what the problem is, and what it leads to. Every observation stays **Unverified** until evidence for it is logged in Section 8.
+
+**Basis:** `Team input` means raised by the team. `Proposed` means added so that every scope area has at least one observation behind it.
+
+| ID | Observation | Basis | Status | Workstream |
+|---|---|---|---|---|
+| O1 | Patients can't tell how serious a symptom is or what kind of care it needs, so they delay care, self-medicate, or see the wrong provider first. | Team input | Unverified | A |
+| O2 | Patients know only the providers their family and neighbors mention, not everyone within reach. | Team input | Unverified | B |
+| O3 | Hospitals specialize (e.g. neurology, cancer), but what each one offers isn't visible to patients or to the clinics referring them. | Team input | Unverified | B |
+| O4 | Patients have no reliable way to choose between doctors, even between doctors at the same hospital who treat the same condition. | Team input | Unverified | B |
+| O5 | Patients often don't know whether a specialist is available, or how long the wait is, until they arrive. | Team input | Unverified | B, C |
+| O6 | Many specialist services don't exist locally, so patients must travel to distant centers they know nothing about. | Team input | Unverified | B |
+| O7 | Unlicensed practitioners, middlemen (touts), and "guaranteed cure" clinics take advantage of patients who don't know where to go, and patients can't check who is legitimate. | Team input | Unverified | B |
+| O8 | The full cost of care, including travel, lodging, and lost wages, isn't known up front and often exceeds what families can pay. | Team input | Unverified | A |
+| O9 | Insurance, government schemes, and financial aid exist, but patients can't easily find out what they qualify for or how to apply. | Team input | Unverified | A |
+| O10 | Different doctors prescribe different medicines for the same condition, so patients lose trust and keep switching doctors. | Team input | Unverified | C |
+| O11 | Referrals often stall: specialists receive incomplete information, and PCPs rarely learn whether the patient was seen. | Proposed | Unverified | C |
+| O12 | Seeing a specialist can take several trips and a full day of travel, and every follow-up repeats it. | Proposed | Unverified | C |
+| O13 | Remote consultations exist in some places, but rural patients rarely use them. | Proposed | Unverified | C |
+| O14 | Patients often leave a specialist visit without understanding what was said or what to do next. | Proposed | Unverified | C |
+| O15 | Paperwork such as referral letters, pre-authorization, and scheme claims takes up clinic time and delays care. | Proposed | Unverified | A, C |
 
 ## 5. Stakeholders
 
@@ -94,9 +106,9 @@ The result is delayed diagnosis and treatment, wasted trips and money, exposure 
 
 | Workstream | Focus | Owner | Observations |
 |---|---|---|---|
-| A | Care need and affordability | Person 1 | O1, O8 |
-| B | Provider discovery and trust | Person 2 | O2, O3, O4, O5, O7 |
-| C | Care delivery and coordination | Person 3 | O4, O6, O7 |
+| A | Care need and affordability | Person 1 | O1, O8, O9, O15 |
+| B | Provider discovery and trust | Person 2 | O2, O3, O4, O5, O6, O7 |
+| C | Care delivery and coordination | Person 3 | O5, O10, O11, O12, O13, O14, O15 |
 | X | Cross-cutting | Shared | All |
 
 **Status values:** `Open`, `In progress`, `Answered` (see Section 8).
@@ -216,14 +228,14 @@ The result is delayed diagnosis and treatment, wasted trips and money, exposure 
 | C-17 | How do patients ask follow-up questions once they are back home? | Open |
 | C-18 | Who holds the patient's records, and can the patient take them from one provider to another? | Open |
 
-**C.6 Medicines from multiple prescribers**
+**C.6 Different prescriptions for the same condition**
 
 | ID | Question | Status |
 |---|---|---|
-| C-19 | How often do patients see several doctors who each prescribe medicines without knowing what the others prescribed? | Open |
-| C-20 | What risks does this create (duplicate medicines, interactions, confusion about what to take)? Who is in a position to catch them? | Open |
-| C-21 | Why do prescriptions differ between doctors (clinical judgment, local availability, brand vs. generic, cost)? How much of this does the patient understand? | Open |
-| C-22 | How do patients keep track of what they are currently taking? | Open |
+| C-19 | How often do patients get different medicines from different doctors for the same condition? | Open |
+| C-20 | Why do prescriptions for the same condition differ (clinical judgment, patient history, which medicines are available locally, brand vs. generic, cost, commercial incentives)? Which of these reasons are explained to patients? | Open |
+| C-21 | How does this affect patients' trust in their treatment, and how often does it lead them to switch doctors? | Open |
+| C-22 | What does switching doctors cost patients (money, time, repeated tests, treatment restarted from scratch)? Does the new doctor know what was prescribed before? | Open |
 
 **C.7 Administrative burden**
 
@@ -255,14 +267,21 @@ The result is delayed diagnosis and treatment, wasted trips and money, exposure 
 
 | Observation | Questions |
 |---|---|
-| O1: Unaware of possible condition | A-1 to A-6, X-1, X-2 |
-| O2: Unaware of local providers | B-1, B-2, B-3 |
-| O3: Specialized hospitals | B-4, B-5 |
-| O4: Availability and quality of doctors | B-7, B-8, B-9, C-5 |
-| O5: Comparing doctors for the same condition | B-10, B-11 |
-| O6: Different prescriptions from different doctors | C-19 to C-22 |
-| O7: Treatment not available locally; fraud | B-5, B-6, B-12 to B-15, C-8 to C-11 |
-| O8: Cost, budget, and financial aid | A-7 to A-13 |
+| O1: Can't judge urgency or where to go | A-1 to A-6, A-16, X-1, X-2 |
+| O2: Limited awareness of providers | B-1, B-2 |
+| O3: Specializations not visible | B-4, B-5 |
+| O4: No basis for choosing a doctor | B-8 to B-11 |
+| O5: Availability and wait times unknown | B-7, C-5 to C-7 |
+| O6: Services not available locally | B-3, B-5, B-6 |
+| O7: Fraud and no way to verify providers | B-12 to B-15 |
+| O8: Full cost unknown and unaffordable | A-7, A-8, A-13, C-11 |
+| O9: Coverage and aid hard to find and use | A-9 to A-12, C-14 |
+| O10: Different prescriptions for the same condition | C-19 to C-22 |
+| O11: Referrals stall | C-1 to C-4, C-15, C-18 |
+| O12: Repeated, long trips | C-6, C-8 to C-11 |
+| O13: Low use of remote consultations | A-15, C-12 to C-14 |
+| O14: Patients don't understand the visit | A-14, C-16, C-17 |
+| O15: Paperwork delays care | A-12, C-23 to C-25 |
 
 ### 7.2 Scope areas → questions
 
@@ -275,7 +294,7 @@ The result is delayed diagnosis and treatment, wasted trips and money, exposure 
 | Telehealth | C-12 to C-14 |
 | Insurance coverage constraints | A-9, A-10, C-14 |
 | Administrative burden | A-12, C-23 to C-25 |
-| Patient, specialist, and PCP communication | C-3, C-15 to C-18, C-19 to C-22 |
+| Patient, specialist, and PCP communication | C-3, C-15 to C-18, C-20, C-22 |
 
 ---
 
@@ -290,11 +309,17 @@ The result is delayed diagnosis and treatment, wasted trips and money, exposure 
 
 ### 8.2 Status and confidence definitions
 
-| Status | Meaning |
+| Question status | Meaning |
 |---|---|
 | Open | Not yet investigated |
 | In progress | Evidence is being gathered |
 | Answered | Supported by at least one cited source |
+
+| Observation status | Meaning |
+|---|---|
+| Unverified | No evidence logged yet |
+| Confirmed | Supported by evidence at medium or high confidence |
+| Rejected | The evidence contradicts it; keep the row and record why |
 
 | Confidence | Meaning |
 |---|---|
@@ -304,10 +329,11 @@ The result is delayed diagnosis and treatment, wasted trips and money, exposure 
 
 ### 8.3 Evidence log template
 
-Record findings here as questions are answered, and update the question's status in Section 6.
+Record findings here as questions are answered and observations are tested. Then update the status in Section 4 (observations) or Section 6 (questions).
 
 | ID | Finding | Source | Confidence | Remaining unknowns |
 |---|---|---|---|---|
+| O10 | | | | |
 | A-7 | | | | |
 
 ---
