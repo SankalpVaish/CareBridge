@@ -14,24 +14,31 @@
  */
 import { useEffect, useRef, useState } from 'react'
 import { Card, Badge, Button } from '../../shared/ui.jsx'
-import { EXAMPLE_SYMPTOMS } from './symptomChecker.js'
+import { getExampleSymptoms } from './symptomChecker.js'
 import { suggestCareTypeLLM, hasLlmKey } from './llmSymptomChecker.js'
+import { useCarePrefs } from './carePreferences.jsx'
 
 /**
  * @param {Object} props
  * @param {string} [props.initialText]  Seed text (e.g. the demo patient's words).
- * @param {string} [props.title]
+ * @param {string} [props.title]        Explicit title (overrides the default).
+ * @param {boolean} [props.patientMode] If true and no title given, use the "patient" title.
  * @param {(result: object|null, text: string) => void} [props.onResult]  Called after each check, and with null on Clear.
  */
 export default function SymptomChecker({
   initialText = '',
-  title = 'What are you feeling?',
+  title,
+  patientMode = false,
   onResult,
 }) {
+  const { t, code } = useCarePrefs()
   const [text, setText] = useState(initialText)
   const [result, setResult] = useState(null)
   const [loading, setLoading] = useState(false)
   const abortRef = useRef(null)
+
+  const heading =
+    title ?? (patientMode ? t('sym.titlePatient') : t('sym.title'))
 
   // Run once on mount if seeded with the demo patient's words.
   useEffect(() => {
@@ -39,6 +46,13 @@ export default function SymptomChecker({
     return () => abortRef.current?.abort()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  // Re-run the last check when the language changes, so the AI guidance and
+  // the offline copy come back in the new language.
+  useEffect(() => {
+    if (text.trim()) check(text)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [code])
 
   async function check(value) {
     const query = value ?? text
@@ -53,7 +67,7 @@ export default function SymptomChecker({
 
     setLoading(true)
     try {
-      const r = await suggestCareTypeLLM(query, { signal: controller.signal })
+      const r = await suggestCareTypeLLM(query, { signal: controller.signal, lang: code })
       setResult(r)
       onResult?.(r, query)
     } catch (err) {
@@ -61,7 +75,7 @@ export default function SymptomChecker({
         const fallback = {
           kind: 'unclear',
           careType: '',
-          headline: 'Something went wrong. A general doctor is a safe first step.',
+          headline: t('sym.errFallback'),
           notes: [],
           matchedWords: [],
           source: 'offline',
@@ -82,13 +96,10 @@ export default function SymptomChecker({
   return (
     <Card>
       <div className="flex items-center justify-between gap-2">
-        <h2 className="font-semibold text-slate-900">{title}</h2>
+        <h2 className="font-semibold text-slate-900">{heading}</h2>
         <Badge tone="slate">A-1..A-5</Badge>
       </div>
-      <p className="mt-1 text-sm text-slate-600">
-        Describe it in your own words. We’ll point you to the kind of care to
-        ask for first — this is guidance, not a diagnosis.
-      </p>
+      <p className="mt-1 text-sm text-slate-600">{t('sym.intro')}</p>
 
       {/* Input */}
       <form
@@ -99,18 +110,18 @@ export default function SymptomChecker({
         }}
       >
         <label htmlFor="symptom-input" className="sr-only">
-          Describe your symptom
+          {t('sym.inputLabel')}
         </label>
         <textarea
           id="symptom-input"
           value={text}
           onChange={(e) => setText(e.target.value)}
           rows={2}
-          placeholder="e.g. chest feels tight when I walk uphill"
+          placeholder={t('sym.placeholder')}
           className="w-full resize-none rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-care focus:outline-none focus:ring-1 focus:ring-care"
         />
         <div className="mt-2 flex flex-wrap items-center gap-2">
-          <Button type="submit">{loading ? 'Checking…' : 'Check'}</Button>
+          <Button type="submit">{loading ? t('sym.checking') : t('sym.check')}</Button>
           {text && (
             <Button
               type="button"
@@ -123,7 +134,7 @@ export default function SymptomChecker({
                 onResult?.(null, '')
               }}
             >
-              Clear
+              {t('sym.clear')}
             </Button>
           )}
         </div>
@@ -131,9 +142,9 @@ export default function SymptomChecker({
 
       {/* Example chips (A-5: everyday wording) */}
       <div className="mt-3">
-        <p className="text-xs font-medium text-slate-500">Try an example:</p>
+        <p className="text-xs font-medium text-slate-500">{t('sym.tryExample')}</p>
         <div className="mt-1 flex flex-wrap gap-1.5">
-          {EXAMPLE_SYMPTOMS.map((ex) => (
+          {getExampleSymptoms(code).map((ex) => (
             <button
               key={ex}
               type="button"
@@ -150,28 +161,27 @@ export default function SymptomChecker({
       {loading && (
         <div className="mt-4 flex items-center gap-2 text-sm text-slate-500">
           <span className="h-3 w-3 animate-pulse rounded-full bg-care" />
-          Thinking about the best kind of care to suggest…
+          {t('sym.thinking')}
         </div>
       )}
       {!loading && result && <ResultPanel result={result} />}
 
       {!hasLlmKey() && (
-        <p className="mt-3 text-xs text-amber-600">
-          No LLM key found — using the offline keyword helper. Add
-          VITE_GROQ_API_KEY to .env.local for AI suggestions.
-        </p>
+        <p className="mt-3 text-xs text-amber-600">{t('sym.noKey')}</p>
       )}
     </Card>
   )
 }
 
 function SourceBadge({ source }) {
-  if (source === 'llm') return <Badge tone="violet">AI</Badge>
-  if (source === 'offline') return <Badge tone="slate">Offline</Badge>
+  const { t } = useCarePrefs()
+  if (source === 'llm') return <Badge tone="violet">{t('badge.ai')}</Badge>
+  if (source === 'offline') return <Badge tone="slate">{t('badge.offline')}</Badge>
   return null
 }
 
 function ResultPanel({ result }) {
+  const { t } = useCarePrefs()
   if (result.kind === 'emergency') {
     return (
       <div
@@ -189,7 +199,7 @@ function ResultPanel({ result }) {
         </ul>
         {result.matchedWords?.length > 0 && (
           <p className="mt-2 text-xs text-red-700">
-            Flagged because you mentioned: {result.matchedWords.join(', ')}
+            {t('sym.flagged')} {result.matchedWords.join(', ')}
           </p>
         )}
       </div>
@@ -209,7 +219,7 @@ function ResultPanel({ result }) {
       </div>
       {result.careType && (
         <p className="mt-1 text-sm">
-          Suggested care type:{' '}
+          {t('sym.careType')}{' '}
           <span className="font-semibold text-slate-900">
             {result.careType}
           </span>
@@ -224,13 +234,10 @@ function ResultPanel({ result }) {
       )}
       {result.matchedWords?.length > 0 && (
         <p className="mt-2 text-xs text-slate-500">
-          Matched your words: {result.matchedWords.join(', ')}
+          {t('sym.matched')} {result.matchedWords.join(', ')}
         </p>
       )}
-      <p className="mt-2 text-xs text-slate-500">
-        Guidance only — not a diagnosis. Clinical decisions stay with a
-        qualified clinician (X-1).
-      </p>
+      <p className="mt-2 text-xs text-slate-500">{t('sym.notDiagnosis')}</p>
     </div>
   )
 }

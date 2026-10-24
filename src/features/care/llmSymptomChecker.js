@@ -46,19 +46,31 @@ Respond with ONLY a JSON object, no markdown, in exactly this shape:
   "notes": string[]          // 1-3 short plain-language tips (first step, why not to wait)
 }`
 
+/** Human-readable language name for the prompt. */
+const LANG_NAMES = { en: 'English', es: 'Spanish (español)' }
+
+/** Build the system prompt, telling the model which language to answer in. */
+function buildSystemPrompt(lang) {
+  const name = LANG_NAMES[lang] || 'English'
+  return `${SYSTEM_PROMPT}
+
+Write every string value (headline, careType, notes) in ${name}.`
+}
+
 /**
  * Get a care suggestion for the given text. Async.
  * Returns the same CareSuggestion shape as suggestCareType(), plus `source`.
  *
  * @param {string} text
- * @param {{ signal?: AbortSignal }} [opts]
+ * @param {{ signal?: AbortSignal, lang?: string }} [opts]  lang: 'en' | 'es'
  * @returns {Promise<import('./symptomChecker.js').CareSuggestion & { source: 'emergency-rules'|'llm'|'offline' }>}
  */
 export async function suggestCareTypeLLM(text, opts = {}) {
   const trimmed = String(text || '').trim()
+  const lang = opts.lang || 'en'
 
   // 1) EMERGENCY + empty-input gate — always local, always first (X-2).
-  const local = suggestCareType(trimmed)
+  const local = suggestCareType(trimmed, lang)
   if (local.kind === 'emergency' || trimmed === '') {
     return { ...local, source: 'emergency-rules' }
   }
@@ -84,7 +96,7 @@ export async function suggestCareTypeLLM(text, opts = {}) {
         max_tokens: 800,
         response_format: { type: 'json_object' },
         messages: [
-          { role: 'system', content: SYSTEM_PROMPT },
+          { role: 'system', content: buildSystemPrompt(lang) },
           { role: 'user', content: `Patient's words: "${trimmed}"` },
         ],
       }),
@@ -103,10 +115,9 @@ export async function suggestCareTypeLLM(text, opts = {}) {
     // Defence in depth: if the model somehow flags an emergency, trust the
     // local emergency copy for consistent, safe wording.
     if (parsed.kind === 'emergency') {
-      const emergency = suggestCareType('chest pain') // canonical emergency copy
+      const emergency = suggestCareType('chest pain', lang) // canonical emergency copy
       return {
         ...emergency,
-        headline: 'This may be an emergency. Call emergency services now.',
         matchedWords: [],
         source: 'llm',
       }
