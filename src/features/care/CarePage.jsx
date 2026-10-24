@@ -17,7 +17,7 @@ import CoverageCheck from './CoverageCheck.jsx'
 import AidPanel from './AidPanel.jsx'
 import PatientTriage from './PatientTriage.jsx'
 import ChwTriage from './ChwTriage.jsx'
-import { CarePreferencesProvider, useCarePrefs } from './carePreferences.jsx'
+import { useCarePrefs } from './carePreferences.jsx'
 import CarePreferencesBar from './CarePreferencesBar.jsx'
 
 const MODES = [
@@ -31,15 +31,8 @@ const STEPS = [
   { id: 'help', labelKey: 'step.help', hintKey: 'step.helpHint' },
 ]
 
+// Language and easy-read come from the app-wide CarePreferencesProvider (App.jsx).
 export default function CarePage() {
-  return (
-    <CarePreferencesProvider patient={demoPatient}>
-      <CarePageInner />
-    </CarePreferencesProvider>
-  )
-}
-
-function CarePageInner() {
   const { user } = useAuth()
   const { t, lowLiteracy } = useCarePrefs()
   const [mode, setMode] = useState(user?.role === 'chw' ? 'chw' : 'patient')

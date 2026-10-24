@@ -35,6 +35,26 @@ const STRINGS = {
   en: {
     'page.subtitle':
       'Recognize the need, then understand the true cost and what help is available.',
+    'home.region': 'Region:',
+    'home.title': 'Getting rural patients to the right specialty care',
+    'home.intro':
+      'A rural patient who needs a specialist faces a chain of gaps: recognition, availability, trust, affordability, coordination, and continuity. This demo walks one patient through all of them.',
+    'home.demoPatient': 'Demo patient (shared across all sections)',
+    'home.toSpecialist': 'mi to nearest specialist',
+    'home.budget': 'Budget',
+    'home.perMonth': '/mo',
+    'home.language': 'Language',
+    'home.languageHint': 'Changes the Care & Cost section. Other sections are in English for now.',
+    'home.open': 'Open section →',
+    'home.care.title': 'Care & Cost',
+    'home.care.blurb':
+      'Help patients recognize what care they need and understand the full cost, coverage, and financial aid.',
+    'home.find.title': 'Find & Trust',
+    'home.find.blurb':
+      'Find the nearest centre that offers the treatment you need, and check that it is legitimate before you travel or pay.',
+    'home.coordinate.title': 'Coordinate',
+    'home.coordinate.blurb':
+      'Track referrals, schedule appointments, plan travel and telehealth, and keep care teams in sync.',
     'step.check': 'What’s wrong?',
     'step.checkHint': 'Describe it and see what kind of care to get, and how soon',
     'step.cost': 'What will it cost?',
@@ -152,6 +172,26 @@ const STRINGS = {
   es: {
     'page.subtitle':
       'Reconozca la necesidad y luego entienda el costo real y la ayuda disponible.',
+    'home.region': 'Región:',
+    'home.title': 'Llevar a los pacientes rurales a la atención especializada correcta',
+    'home.intro':
+      'Un paciente rural que necesita un especialista enfrenta una cadena de obstáculos: reconocer el problema, encontrar el servicio, confiar en el proveedor, poder pagarlo, coordinar la atención y darle continuidad. Esta demostración acompaña a una paciente en todos ellos.',
+    'home.demoPatient': 'Paciente de demostración (la misma en todas las secciones)',
+    'home.toSpecialist': 'mi al especialista más cercano',
+    'home.budget': 'Presupuesto',
+    'home.perMonth': '/mes',
+    'home.language': 'Idioma',
+    'home.languageHint': 'Cambia la sección Atención y costo. Las otras secciones están en inglés por ahora.',
+    'home.open': 'Abrir sección →',
+    'home.care.title': 'Atención y costo',
+    'home.care.blurb':
+      'Ayuda a reconocer qué atención se necesita y a entender el costo total, la cobertura y la ayuda económica.',
+    'home.find.title': 'Buscar y confiar',
+    'home.find.blurb':
+      'Encuentre el centro más cercano que ofrece el tratamiento que necesita y compruebe que es legítimo antes de viajar o pagar.',
+    'home.coordinate.title': 'Coordinar',
+    'home.coordinate.blurb':
+      'Siga las remisiones, programe citas, planee el viaje y las consultas por video, y mantenga coordinado al equipo de atención.',
     'step.check': '¿Qué le pasa?',
     'step.checkHint': 'Descríbalo y vea qué tipo de atención buscar, y qué tan pronto',
     'step.cost': '¿Cuánto costará?',
@@ -266,6 +306,23 @@ const STRINGS = {
 
 const CarePrefsContext = createContext(null)
 
+const LANG_KEY = 'rscn.lang'
+const EASY_READ_KEY = 'rscn.easyRead'
+function readSaved(key) {
+  try {
+    return localStorage.getItem(key)
+  } catch {
+    return null
+  }
+}
+function save(key, value) {
+  try {
+    localStorage.setItem(key, value)
+  } catch {
+    /* storage unavailable — the choice just isn't remembered */
+  }
+}
+
 /**
  * Provider. Seeds the language list from the patient's own languages (A-14),
  * falling back to English if none are known.
@@ -280,8 +337,20 @@ export function CarePreferencesProvider({ patient, children }) {
     return names.length > 0 ? names : ['English']
   }, [patient])
 
-  const [lang, setLang] = useState(available[0])
-  const [lowLiteracy, setLowLiteracy] = useState(false)
+  // Remembered on this device so the choice made on Home carries to every page.
+  const [lang, setLangState] = useState(() => {
+    const saved = readSaved(LANG_KEY)
+    return available.includes(saved) ? saved : available[0]
+  })
+  const [lowLiteracy, setLowLiteracyState] = useState(() => readSaved(EASY_READ_KEY) === 'true')
+  const setLang = (next) => {
+    setLangState(next)
+    save(LANG_KEY, next)
+  }
+  const setLowLiteracy = (next) => {
+    setLowLiteracyState(next)
+    save(EASY_READ_KEY, String(next))
+  }
 
   const value = useMemo(() => {
     const code = CARE_LANGUAGES[lang]?.code ?? 'en'

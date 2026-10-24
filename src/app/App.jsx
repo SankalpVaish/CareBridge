@@ -10,8 +10,19 @@ import SignIn from './SignIn.jsx'
 import SignUp from './SignUp.jsx'
 import RequireAuth from './RequireAuth.jsx'
 import NotFound from './NotFound.jsx'
+import { CarePreferencesProvider } from '../features/care/carePreferences.jsx'
+import { demoPatient } from '../data/mockData.js'
 
 export default function App() {
+  // Language and easy-read are app-wide, so the choice on Home applies everywhere.
+  return (
+    <CarePreferencesProvider patient={demoPatient}>
+      <AppRoutes />
+    </CarePreferencesProvider>
+  )
+}
+
+function AppRoutes() {
   return (
     <Layout>
       <Routes>
