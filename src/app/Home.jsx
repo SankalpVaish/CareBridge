@@ -10,7 +10,7 @@ const sections = [
     bar: 'bg-care',
     blurb:
       'Help patients recognize what care they need and understand the full cost, coverage, and financial aid.',
-    observations: ['O1', 'O8', 'O9', 'O15'],
+    observations: ['O1', 'O5', 'O6', 'O10'],
   },
   {
     to: '/find',
@@ -18,8 +18,8 @@ const sections = [
     accent: 'text-find',
     bar: 'bg-find',
     blurb:
-      'Discover which providers and specialties exist nearby, compare them fairly, and verify they are legitimate.',
-    observations: ['O2', 'O3', 'O4', 'O5', 'O6', 'O7'],
+      'Find the nearest centre that offers the treatment you need, and check that it is legitimate before you travel or pay.',
+    observations: ['O2', 'O3', 'O4'],
   },
   {
     to: '/coordinate',
@@ -28,7 +28,7 @@ const sections = [
     bar: 'bg-coordinate',
     blurb:
       'Track referrals, schedule appointments, plan travel and telehealth, and keep care teams in sync.',
-    observations: ['O10', 'O11', 'O12', 'O13', 'O14', 'O15'],
+    observations: ['O7', 'O8', 'O9', 'O10'],
   },
 ]
 
@@ -42,7 +42,7 @@ export default function Home() {
         </h1>
         <p className="mt-2 max-w-2xl text-slate-600">
           A rural patient who needs a specialist faces a chain of gaps —
-          recognition, discovery, availability, affordability, coordination, and
+          recognition, availability, trust, affordability, coordination, and
           continuity. This demo walks one patient through all of them.
         </p>
       </section>

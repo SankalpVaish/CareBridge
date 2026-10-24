@@ -1,11 +1,13 @@
 /**
  * Find & Trust — lists specialty providers from the shared mock data, lets the
  * user search/filter, and flags whether each is verified (fraud check). See
- * TODO.md for what's left to build (research questions B-1..B-15 in README.md).
+ * TODO.md for what's left to build (research questions B-1..B-14 in README.md).
  */
 import { useMemo, useState } from 'react'
 import { PageHeader, Card, Badge } from '../../shared/ui.jsx'
 import { providers, demoPatient } from '../../data/mockData.js'
+
+const isVerified = (p) => p.verification.status === 'verified'
 
 export default function FindPage() {
   const [query, setQuery] = useState('cardiology')
@@ -21,7 +23,7 @@ export default function FindPage() {
           : p.name.toLowerCase().includes(q) ||
             p.specialties.some((s) => s.includes(q)),
       )
-      .filter((p) => (verifiedOnly ? p.verified : true))
+      .filter((p) => (verifiedOnly ? isVerified(p) : true))
       .sort((a, b) => a.distanceMiles - b.distanceMiles)
   }, [query, verifiedOnly])
 
@@ -67,7 +69,7 @@ export default function FindPage() {
               <div>
                 <div className="flex items-center gap-2">
                   <h2 className="font-semibold text-slate-900">{p.name}</h2>
-                  {p.verified ? (
+                  {isVerified(p) ? (
                     <Badge tone="green">✓ Verified</Badge>
                   ) : (
                     <Badge tone="red">⚠ Unverified</Badge>
@@ -90,14 +92,15 @@ export default function FindPage() {
               </div>
             </div>
 
-            {!p.verified && (
+            {p.fraudSignals.length > 0 && (
               <div className="mt-3 rounded-lg bg-red-50 p-3 text-sm text-red-800">
                 <p className="font-medium">Why this is flagged</p>
-                <p className="mt-1">
-                  Not found in the licensing registry, very few reviews, and a
-                  suspiciously low price with “guaranteed cure” marketing. Classic
-                  fraud pattern (O7, B-12). Don’t pay upfront.
-                </p>
+                <ul className="mt-1 list-disc pl-5">
+                  {p.fraudSignals.map((s) => (
+                    <li key={s}>{s}</li>
+                  ))}
+                </ul>
+                <p className="mt-2">Don’t pay upfront.</p>
               </div>
             )}
           </Card>

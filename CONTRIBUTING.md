@@ -18,9 +18,9 @@ Requires Node 18+.
 
 | Workstream | Section | Folder you own | Research questions |
 |---|---|---|---|
-| A — Care & Cost | `/care` | `src/features/care/` | A-1..A-16 |
-| B — Find & Trust | `/find` | `src/features/find/` | B-1..B-15 |
-| C — Coordinate | `/coordinate` | `src/features/coordinate/` | C-1..C-25 |
+| A — Care & Cost | `/care` | `src/features/care/` | A-1..A-17 |
+| B — Find & Trust | `/find` | `src/features/find/` | B-1..B-14 |
+| C — Coordinate | `/coordinate` | `src/features/coordinate/` | C-1..C-16 |
 
 Work almost entirely inside your own `src/features/<x>/` folder. That keeps
 merge conflicts near zero.

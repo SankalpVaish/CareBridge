@@ -6,9 +6,9 @@ so the site stays clean for judging.
 
 | Section | Route | Folder | Questions |
 |---|---|---|---|
-| Care & Cost | `/care` | `src/features/care/` | A-1..A-16 |
-| Find & Trust | `/find` | `src/features/find/` | B-1..B-15 |
-| Coordinate | `/coordinate` | `src/features/coordinate/` | C-1..C-25 |
+| Care & Cost | `/care` | `src/features/care/` | A-1..A-17 |
+| Find & Trust | `/find` | `src/features/find/` | B-1..B-14 |
+| Coordinate | `/coordinate` | `src/features/coordinate/` | C-1..C-16 |
 
 ---
 
@@ -22,11 +22,13 @@ so the site stays clean for judging.
 
 ## Find & Trust (`/find`)
 
-- [ ] **B-1 / B-2** — Pull in a wider provider directory (more specialties, more towns).
-- [ ] **B-4 / B-5 / B-6** — Let users browse by condition and surface "nearest place that offers X".
-- [ ] **B-8..B-11** — Build a fair comparison view; explain what ratings do and don't mean.
-- [ ] **B-13 / B-14** — Wire the verified flag to a real/mock licensing registry lookup.
-- [ ] **B-12 / B-15** — Expand the fraud-signal explanation into a reusable "trust check".
+- [ ] **B-1 / B-2** — Search by treatment or test (`services`), not just specialty, and show "nearest place that offers X".
+- [ ] **B-3** — Let the patient set how far they can travel; show distance for each result.
+- [ ] **B-4..B-8** — Getting there: transport options, trip cost and time. Agree with the Coordinate owner who owns the travel plan.
+- [ ] **B-9 / B-12** — Turn `fraudSignals` into a reusable "trust check" that explains each warning sign.
+- [ ] **B-10 / B-11** — Back `verification` with a mock licensing-registry lookup (registry, license number, date checked).
+- [ ] **B-13** — Ranking nobody can buy: show why each result is ranked where it is, with no sponsored slots.
+- [ ] **B-14 / X-6** — Rank by `loopClosureRate`, travel, cost, wait, and language instead of star ratings.
 
 ## Coordinate (`/coordinate`)
 

@@ -14,7 +14,7 @@
  * - Need a new field on a shared object? Add it HERE and tell the other two owners.
  * - Need something only your workstream uses? Keep it in your own feature folder.
  *
- * IDs below reference observations (O1..O15) and questions (A-*, B-*, C-*, X-*)
+ * IDs below reference observations (O1..O10) and questions (A-*, B-*, C-*, X-*)
  * from README.md so data shapes trace back to the problem statement.
  */
 
@@ -24,12 +24,25 @@
  * @property {string} name
  * @property {number} age
  * @property {string} location            Town / district label
- * @property {number} distanceToSpecialistMiles  Rough travel distance (ties to O6, O12)
- * @property {string[]} languages         Spoken languages (ties to A-14, X-5)
- * @property {boolean} hasSmartphone      Device access (ties to A-15, C-13)
- * @property {number} monthlyBudgetUsd    What the household can spend (ties to A-13)
- * @property {string[]} schemeIds         Insurance / govt schemes held (ties to A-9)
+ * @property {number} distanceToSpecialistMiles  Rough travel distance (ties to O2, O3)
+ * @property {string[]} languages         Spoken languages (ties to A-9, X-5)
+ * @property {boolean} hasSmartphone      Device access (ties to A-10, C-9)
+ * @property {number} monthlyBudgetUsd    What the household can spend (ties to A-17)
+ * @property {string[]} schemeIds         Insurance / govt schemes held (ties to A-13)
+ * @property {string[]} transport         Ways the patient can travel, e.g. ['community shuttle'] (ties to B-5)
  * @property {string} [primarySymptom]    Free-text symptom in patient words (ties to A-5)
+ */
+
+/**
+ * @typedef {'verified'|'not_found'|'expired'|'unchecked'} VerificationStatus
+ */
+
+/**
+ * @typedef {Object} Verification
+ * @property {VerificationStatus} status
+ * @property {string} registry            Where the license was checked, e.g. 'State Medical Board' (ties to B-11)
+ * @property {string|null} licenseId
+ * @property {string|null} checkedOn      ISO date of the last check
  */
 
 /**
@@ -37,15 +50,19 @@
  * @property {string} id
  * @property {string} name
  * @property {'hospital'|'clinic'|'specialist'} type
- * @property {string[]} specialties       e.g. ['cardiology','oncology'] (ties to O3, B-4)
+ * @property {string[]} specialties       e.g. ['cardiology','oncology'] (ties to O2, B-2)
+ * @property {string[]} services          Treatments and tests offered, e.g. ['Echocardiogram'] (ties to O2, B-2)
  * @property {string} location
  * @property {number} distanceMiles       From the demo patient (ties to B-3)
- * @property {boolean} verified           Licensed / accredited? (ties to O7, B-13)
- * @property {number} rating              0..5 average (ties to B-9, B-11)
+ * @property {Verification} verification  License / accreditation check (ties to O4, B-10, B-11)
+ * @property {string[]} fraudSignals      Warning signs found for this provider (ties to O4, B-9, B-12)
+ * @property {string[]} languages         Languages staff can consult in (ties to A-9)
+ * @property {number|null} loopClosureRate  Share of referrals (0..1) whose findings returned to the referring clinic; null = no history (ties to O7, B-14)
+ * @property {number} rating              0..5 average. Not a ranking signal (ties to X-6)
  * @property {number} reviewCount
- * @property {number} waitDays            Typical wait for an appointment (ties to B-7, O5)
- * @property {boolean} offersTelehealth   (ties to C-12..C-14)
- * @property {string[]} acceptedSchemeIds Schemes billed directly (ties to A-10)
+ * @property {number} waitDays            Typical wait for an appointment
+ * @property {boolean} offersTelehealth   Video follow-ups can save repeat trips (ties to O3)
+ * @property {string[]} acceptedSchemeIds Schemes billed directly (ties to A-14)
  * @property {number} consultFeeUsd
  */
 
@@ -55,7 +72,7 @@
  * @property {string} name
  * @property {'insurance'|'government'|'charity'} kind
  * @property {number} coveragePct         Share of eligible costs covered (0..100)
- * @property {string[]} requiredDocs      Proof needed to claim (ties to A-12)
+ * @property {string[]} requiredDocs      Proof needed to claim (ties to A-16)
  * @property {string} notes
  */
 
@@ -70,7 +87,7 @@
  * @property {string} fromProviderId     Referring PCP / clinic
  * @property {string} toProviderId       Specialist / hospital
  * @property {string} reason             Why the referral was made
- * @property {ReferralStatus} status     (ties to O11, C-1..C-4)
+ * @property {ReferralStatus} status     (ties to O7, C-1..C-4)
  * @property {string} createdDate        ISO date
  * @property {string[]} timeline         Human-readable status history
  * @property {string[]} missingInfo      What the specialist still needs (ties to C-3)
@@ -82,11 +99,11 @@
  * @property {string} providerId
  * @property {number} consultUsd
  * @property {number} testsUsd
- * @property {number} travelUsd          (ties to C-8, C-11)
+ * @property {number} travelUsd          (ties to B-4, B-7)
  * @property {number} lodgingUsd
  * @property {number} lostWagesUsd
  * @property {number} coveredUsd         Paid by schemes
- * @property {number} outOfPocketUsd     What the family actually pays (ties to O8, A-7)
+ * @property {number} outOfPocketUsd     What the family actually pays (ties to O5, A-11)
  */
 
 // ---------------------------------------------------------------------------
@@ -106,6 +123,7 @@ export function makePatient(p = {}) {
     hasSmartphone: p.hasSmartphone ?? false,
     monthlyBudgetUsd: p.monthlyBudgetUsd ?? 0,
     schemeIds: p.schemeIds ?? [],
+    transport: p.transport ?? [],
     primarySymptom: p.primarySymptom ?? '',
   }
 }
@@ -117,9 +135,19 @@ export function makeProvider(p = {}) {
     name: p.name ?? 'Unknown provider',
     type: p.type ?? 'clinic',
     specialties: p.specialties ?? [],
+    services: p.services ?? [],
     location: p.location ?? 'Unknown',
     distanceMiles: p.distanceMiles ?? 0,
-    verified: p.verified ?? false,
+    verification: {
+      status: 'unchecked',
+      registry: '',
+      licenseId: null,
+      checkedOn: null,
+      ...p.verification,
+    },
+    fraudSignals: p.fraudSignals ?? [],
+    languages: p.languages ?? [],
+    loopClosureRate: p.loopClosureRate ?? null,
     rating: p.rating ?? 0,
     reviewCount: p.reviewCount ?? 0,
     waitDays: p.waitDays ?? 0,
