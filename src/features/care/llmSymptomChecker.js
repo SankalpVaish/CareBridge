@@ -26,7 +26,7 @@
  * In a frontend-only build this key ships in the browser bundle — acceptable
  * for a local demo only. Use a server proxy before any real deployment.
  */
-import { suggestCareType, specialtyFromCareType } from './symptomChecker.js'
+import { suggestCareType, specialtyFromCareType, careTypeLabel } from './symptomChecker.js'
 import { findUnsafeTerms } from './outputSafety.js'
 import { SPECIALTY_LABELS, URGENCY_LABELS } from '../../shared/models.js'
 
@@ -86,6 +86,20 @@ Respond with ONLY a JSON object, no markdown, in exactly this shape:
   "notes": string[]          // 1-3 short plain-language tips (first step, why not to wait)
 }`
 
+/** Human-readable language name for the prompt. */
+const LANG_NAMES = { en: 'English', es: 'Spanish (español)' }
+
+/**
+ * The system prompt, telling the model which language to write in. The
+ * specialty and urgency values stay as the English keys from the lists.
+ */
+function buildSystemPrompt(lang) {
+  const name = LANG_NAMES[lang] || 'English'
+  return `${SYSTEM_PROMPT}
+
+Write the headline and notes in ${name}. Keep "kind", "specialty", and "urgency" exactly as the keys listed above.`
+}
+
 /**
  * Get a care suggestion for the given text. Async.
  * Returns the same CareSuggestion shape as suggestCareType(), plus `urgency`
@@ -94,17 +108,19 @@ Respond with ONLY a JSON object, no markdown, in exactly this shape:
  * @param {string} text
  * @param {{
  *   signal?: AbortSignal,
+ *   lang?: string,
  *   context?: { age?: number, duration?: string, worsening?: string },
- * }} [opts]  context.duration / context.worsening are DURATION_OPTIONS / WORSENING_OPTIONS keys.
+ * }} [opts]  lang: 'en' | 'es'. context.duration / context.worsening are DURATION_OPTIONS / WORSENING_OPTIONS keys.
  */
 export async function suggestCareTypeLLM(text, opts = {}) {
   const trimmed = String(text || '').trim()
+  const lang = opts.lang || 'en'
   const context = opts.context ?? {}
   // Getting worse is never "routine" or "within weeks" (rule 5).
   const urgencyFloor = context.worsening === 'yes' ? 'within_days' : 'routine'
 
   // 1) EMERGENCY + empty-input gate — always local, always first (X-2).
-  const local = suggestCareType(trimmed)
+  const local = suggestCareType(trimmed, lang)
   if (local.kind === 'emergency' || trimmed === '') {
     return {
       ...local,
@@ -139,7 +155,7 @@ export async function suggestCareTypeLLM(text, opts = {}) {
         max_tokens: 800,
         response_format: { type: 'json_object' },
         messages: [
-          { role: 'system', content: SYSTEM_PROMPT },
+          { role: 'system', content: buildSystemPrompt(lang) },
           { role: 'user', content: buildUserMessage(trimmed, context) },
         ],
       }),
@@ -168,10 +184,9 @@ export async function suggestCareTypeLLM(text, opts = {}) {
       parsed.urgency === 'emergency' ||
       parsed.specialty === 'emergency care'
     ) {
-      const emergency = suggestCareType('chest pain') // canonical emergency copy
+      const emergency = suggestCareType('chest pain', lang) // canonical emergency copy
       return {
         ...emergency,
-        headline: 'This may be an emergency. Call emergency services now.',
         matchedWords: [],
         urgency: 'emergency',
         source: 'llm',
@@ -181,7 +196,7 @@ export async function suggestCareTypeLLM(text, opts = {}) {
     return {
       kind: parsed.kind,
       // Our own label for the chosen key, so the wording is always one we wrote.
-      careType: parsed.specialty === 'primary care' ? '' : SPECIALTY_LABELS[parsed.specialty],
+      careType: careTypeLabel(parsed.specialty, lang),
       specialty: parsed.specialty,
       urgency: moreUrgent(parsed.urgency, urgencyFloor),
       headline: parsed.headline,

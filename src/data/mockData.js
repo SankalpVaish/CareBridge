@@ -39,7 +39,7 @@ export const schemes = [
     id: 'prairie-ppo',
     name: 'Prairie Health PPO',
     kind: 'insurance',
-    covers: ['consult', 'tests'],
+    covers: ['consult', 'tests', 'treatment'],
     billedByProvider: true,
     plan: {
       deductibleUsd: 1500,
@@ -68,7 +68,7 @@ export const schemes = [
     id: 'heartland-bronze',
     name: 'Heartland Basic Choice (Bronze)',
     kind: 'insurance',
-    covers: ['consult', 'tests'],
+    covers: ['consult', 'tests', 'treatment'],
     billedByProvider: true,
     plan: {
       deductibleUsd: 6000,
@@ -91,7 +91,7 @@ export const schemes = [
     id: 'medicaid',
     name: 'Medicaid',
     kind: 'government',
-    covers: ['consult', 'tests'],
+    covers: ['consult', 'tests', 'treatment', 'medicines'],
     coveragePct: 80,
     billedByProvider: true,
     eligibility: [
@@ -115,7 +115,7 @@ export const schemes = [
     id: 'medicare',
     name: 'Medicare',
     kind: 'insurance',
-    covers: ['consult', 'tests'],
+    covers: ['consult', 'tests', 'treatment'],
     coveragePct: 80,
     billedByProvider: true,
     eligibility: [{ field: 'age', op: 'gte', value: 65, label: 'Age 65 or older' }],

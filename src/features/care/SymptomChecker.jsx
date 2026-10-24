@@ -16,28 +16,32 @@ import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Card, Badge, Button } from '../../shared/ui.jsx'
 import EmergencyHelp from '../find/EmergencyHelp.jsx'
-import { EXAMPLE_SYMPTOMS } from './symptomChecker.js'
+import { getExampleSymptoms, careTypeLabel } from './symptomChecker.js'
 import {
   suggestCareTypeLLM,
   hasLlmKey,
   DURATION_OPTIONS,
   WORSENING_OPTIONS,
 } from './llmSymptomChecker.js'
-import { SPECIALTY_LABELS, URGENCY_LABELS } from '../../shared/models.js'
+import { URGENCY_LABELS } from '../../shared/models.js'
+import { useCarePrefs } from './carePreferences.jsx'
 
 /**
  * @param {Object} props
  * @param {string} [props.initialText]  Seed text (e.g. the demo patient's words).
- * @param {string} [props.title]
+ * @param {string} [props.title]        Explicit title (overrides the default).
+ * @param {boolean} [props.patientMode] If true and no title given, use the "patient" title.
  * @param {number} [props.patientAge]   Passed to the AI so it can judge how soon to be seen.
  * @param {(result: object|null, text: string) => void} [props.onResult]  Called after each check, and with null on Clear.
  */
 export default function SymptomChecker({
   initialText = '',
-  title = 'What are you feeling?',
+  title,
+  patientMode = false,
   patientAge,
   onResult,
 }) {
+  const { t, code } = useCarePrefs()
   const [text, setText] = useState(initialText)
   // Optional follow-up questions (A-1, A-3): how long, and getting worse?
   const [duration, setDuration] = useState('')
@@ -46,12 +50,22 @@ export default function SymptomChecker({
   const [loading, setLoading] = useState(false)
   const abortRef = useRef(null)
 
+  const heading =
+    title ?? (patientMode ? t('sym.titlePatient') : t('sym.title'))
+
   // Run once on mount if seeded with the demo patient's words.
   useEffect(() => {
     if (initialText) check(initialText)
     return () => abortRef.current?.abort()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  // Re-run the last check when the language changes, so the AI guidance and
+  // the offline copy come back in the new language.
+  useEffect(() => {
+    if (text.trim()) check(text)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [code])
 
   async function check(value) {
     const query = value ?? text
@@ -68,6 +82,7 @@ export default function SymptomChecker({
     try {
       const r = await suggestCareTypeLLM(query, {
         signal: controller.signal,
+        lang: code,
         context: { age: patientAge, duration, worsening },
       })
       setResult(r)
@@ -79,7 +94,7 @@ export default function SymptomChecker({
           careType: '',
           specialty: 'primary care',
           urgency: '',
-          headline: 'Something went wrong. A general doctor is a safe first step.',
+          headline: t('sym.errFallback'),
           notes: [],
           matchedWords: [],
           source: 'offline',
@@ -100,13 +115,10 @@ export default function SymptomChecker({
   return (
     <Card>
       <div className="flex items-center justify-between gap-2">
-        <h2 className="font-semibold text-slate-900">{title}</h2>
+        <h2 className="font-semibold text-slate-900">{heading}</h2>
         <Badge tone="slate">A-1..A-5</Badge>
       </div>
-      <p className="mt-1 text-sm text-slate-600">
-        Describe it in your own words. We’ll point you to the kind of care to
-        ask for first — this is guidance, not a diagnosis.
-      </p>
+      <p className="mt-1 text-sm text-slate-600">{t('sym.intro')}</p>
 
       {/* Input */}
       <form
@@ -117,32 +129,34 @@ export default function SymptomChecker({
         }}
       >
         <label htmlFor="symptom-input" className="sr-only">
-          Describe your symptom
+          {t('sym.inputLabel')}
         </label>
         <textarea
           id="symptom-input"
           value={text}
           onChange={(e) => setText(e.target.value)}
           rows={2}
-          placeholder="e.g. chest feels tight when I walk uphill"
+          placeholder={t('sym.placeholder')}
           className="w-full resize-none rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-care focus:outline-none focus:ring-1 focus:ring-care"
         />
         <div className="mt-2 grid gap-2 sm:grid-cols-2">
           <ChoiceSelect
-            label="How long have you had this?"
+            label={t('sym.howLong')}
             value={duration}
             onChange={setDuration}
             options={DURATION_OPTIONS}
+            keyPrefix="dur"
           />
           <ChoiceSelect
-            label="Is it getting worse?"
+            label={t('sym.worse')}
             value={worsening}
             onChange={setWorsening}
             options={WORSENING_OPTIONS}
+            keyPrefix="worse"
           />
         </div>
         <div className="mt-2 flex flex-wrap items-center gap-2">
-          <Button type="submit">{loading ? 'Checking…' : 'Check'}</Button>
+          <Button type="submit">{loading ? t('sym.checking') : t('sym.check')}</Button>
           {text && (
             <Button
               type="button"
@@ -157,7 +171,7 @@ export default function SymptomChecker({
                 onResult?.(null, '')
               }}
             >
-              Clear
+              {t('sym.clear')}
             </Button>
           )}
         </div>
@@ -165,9 +179,9 @@ export default function SymptomChecker({
 
       {/* Example chips (A-5: everyday wording) */}
       <div className="mt-3">
-        <p className="text-xs font-medium text-slate-500">Try an example:</p>
+        <p className="text-xs font-medium text-slate-500">{t('sym.tryExample')}</p>
         <div className="mt-1 flex flex-wrap gap-1.5">
-          {EXAMPLE_SYMPTOMS.map((ex) => (
+          {getExampleSymptoms(code).map((ex) => (
             <button
               key={ex}
               type="button"
@@ -184,29 +198,36 @@ export default function SymptomChecker({
       {loading && (
         <div className="mt-4 flex items-center gap-2 text-sm text-slate-500">
           <span className="h-3 w-3 animate-pulse rounded-full bg-care" />
-          Thinking about the best kind of care to suggest…
+          {t('sym.thinking')}
         </div>
       )}
       {!loading && result && <ResultPanel result={result} />}
 
       {!hasLlmKey() && (
-        <p className="mt-3 text-xs text-amber-600">
-          No LLM key found — using the offline keyword helper. Add
-          VITE_GROQ_API_KEY to .env.local for AI suggestions.
-        </p>
+        <p className="mt-3 text-xs text-amber-600">{t('sym.noKey')}</p>
       )}
     </Card>
   )
 }
 
 function SourceBadge({ source }) {
-  if (source === 'llm') return <Badge tone="violet">AI</Badge>
-  if (source === 'offline') return <Badge tone="slate">Offline</Badge>
+  const { t } = useCarePrefs()
+  if (source === 'llm') return <Badge tone="violet">{t('badge.ai')}</Badge>
+  if (source === 'offline') return <Badge tone="slate">{t('badge.offline')}</Badge>
   return null
 }
 
-/** Optional follow-up question as a dropdown; '' means not answered. */
-function ChoiceSelect({ label, value, onChange, options }) {
+/**
+ * Optional follow-up question as a dropdown; '' means not answered.
+ * Option text comes from the care translations (`${keyPrefix}.${key}`),
+ * falling back to the English text in `options`.
+ */
+function ChoiceSelect({ label, value, onChange, options, keyPrefix }) {
+  const { t } = useCarePrefs()
+  const text = (key, fallback) => {
+    const translated = t(`${keyPrefix}.${key}`)
+    return translated === `${keyPrefix}.${key}` ? fallback : translated
+  }
   return (
     <label className="block text-xs text-slate-600">
       {label}
@@ -215,10 +236,10 @@ function ChoiceSelect({ label, value, onChange, options }) {
         onChange={(e) => onChange(e.target.value)}
         className="mt-1 w-full rounded-lg border border-slate-300 px-2 py-1.5 text-sm text-slate-900"
       >
-        <option value="">Choose (optional)</option>
-        {Object.entries(options).map(([key, text]) => (
+        <option value="">{t('sym.optional')}</option>
+        {Object.entries(options).map(([key, english]) => (
           <option key={key} value={key}>
-            {text}
+            {text(key, english)}
           </option>
         ))}
       </select>
@@ -228,11 +249,12 @@ function ChoiceSelect({ label, value, onChange, options }) {
 
 /** Hand-off to Find & Trust for the suggested kind of care (O1 → O2). */
 function FindCareLink({ specialty, urgency }) {
+  const { t, code } = useCarePrefs()
   if (!specialty || specialty === 'emergency care') return null
-  const label =
+  const text =
     specialty === 'primary care'
-      ? 'a primary-care doctor'
-      : (SPECIALTY_LABELS[specialty] ?? specialty).toLowerCase()
+      ? t('sym.findPrimary')
+      : t('sym.findCare').replace('{label}', careTypeLabel(specialty, code).toLowerCase())
   const params = new URLSearchParams({ specialty })
   if (urgency) params.set('urgency', urgency)
   return (
@@ -240,12 +262,13 @@ function FindCareLink({ specialty, urgency }) {
       to={`/find?${params}`}
       className="mt-3 inline-block rounded-lg bg-find px-4 py-2 text-sm font-medium text-white hover:opacity-90"
     >
-      Find {label} near you →
+      {text} →
     </Link>
   )
 }
 
 function ResultPanel({ result }) {
+  const { t } = useCarePrefs()
   if (result.kind === 'emergency') {
     return (
       <div
@@ -264,7 +287,7 @@ function ResultPanel({ result }) {
         </ul>
         {result.matchedWords?.length > 0 && (
           <p className="mt-2 text-xs text-red-700">
-            Flagged because you mentioned: {result.matchedWords.join(', ')}
+            {t('sym.flagged')} {result.matchedWords.join(', ')}
           </p>
         )}
       </div>
@@ -284,7 +307,7 @@ function ResultPanel({ result }) {
       </div>
       {result.careType && (
         <p className="mt-1 text-sm">
-          Suggested care type:{' '}
+          {t('sym.careType')}{' '}
           <span className="font-semibold text-slate-900">
             {result.careType}
           </span>
@@ -292,9 +315,9 @@ function ResultPanel({ result }) {
       )}
       {URGENCY_LABELS[result.urgency] && (
         <p className="mt-1 text-sm">
-          How soon:{' '}
+          {t('sym.howSoon')}{' '}
           <span className="font-semibold text-slate-900">
-            {URGENCY_LABELS[result.urgency]}
+            {t(`urg.${result.urgency}`)}
           </span>
         </p>
       )}
@@ -307,14 +330,11 @@ function ResultPanel({ result }) {
       )}
       {result.matchedWords?.length > 0 && (
         <p className="mt-2 text-xs text-slate-500">
-          Matched your words: {result.matchedWords.join(', ')}
+          {t('sym.matched')} {result.matchedWords.join(', ')}
         </p>
       )}
       <FindCareLink specialty={result.specialty} urgency={result.urgency} />
-      <p className="mt-2 text-xs text-slate-500">
-        Guidance only — not a diagnosis. Clinical decisions stay with a
-        qualified clinician (X-1).
-      </p>
+      <p className="mt-2 text-xs text-slate-500">{t('sym.notDiagnosis')}</p>
     </div>
   )
 }

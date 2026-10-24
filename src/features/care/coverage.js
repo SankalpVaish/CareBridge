@@ -8,6 +8,8 @@
 export const COST_ITEM_LABELS = {
   consult: 'Consultation',
   tests: 'Tests',
+  treatment: 'Treatment / procedure',
+  medicines: 'Medicines',
   travel: 'Travel',
   lodging: 'Lodging',
   lostWages: 'Lost wages',

@@ -159,7 +159,7 @@ export const USER_ROLE_LABELS = {
 /**
  * Cost items a scheme can pay for. Same names as the CostEstimate fields
  * without the "Usd" suffix.
- * @typedef {'consult'|'tests'|'travel'|'lodging'|'lostWages'} CostItem
+ * @typedef {'consult'|'tests'|'treatment'|'medicines'|'travel'|'lodging'|'lostWages'} CostItem
  */
 
 /**

@@ -97,10 +97,12 @@ function CoverageResult({ found, provider, items }) {
   const { scheme, record } = found
   const plan = scheme.plan
   // This plan on its own, before any other help.
-  const { lines, paidUsd } = applyCoverage(scheme, { ...items }, {
+  const { lines: allLines, paidUsd } = applyCoverage(scheme, { ...items }, {
     provider,
     deductibleMetUsd: record.deductibleMetUsd,
   })
+  // Hide covered items that cost nothing on this visit (e.g. no treatment yet).
+  const lines = allLines.filter((l) => l.costUsd > 0)
   const notCovered = Object.entries(items).filter(
     ([item, cost]) => cost > 0 && !scheme.covers.includes(item),
   )
