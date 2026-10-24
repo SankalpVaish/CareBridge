@@ -53,7 +53,7 @@
  * @property {string[]} specialties       e.g. ['cardiology','oncology'] (ties to O2, B-2)
  * @property {string[]} services          Treatments and tests offered, e.g. ['Echocardiogram'] (ties to O2, B-2)
  * @property {string} location
- * @property {number} distanceMiles       From the demo patient (ties to B-3)
+ * @property {number|null} distanceMiles  From the demo patient; null = unknown (no physical address) (ties to B-3)
  * @property {Verification} verification  License / accreditation check (ties to O4, B-10, B-11)
  * @property {string[]} fraudSignals      Warning signs found for this provider (ties to O4, B-9, B-12)
  * @property {string[]} languages         Languages staff can consult in (ties to A-9)
@@ -137,7 +137,8 @@ export function makeProvider(p = {}) {
     specialties: p.specialties ?? [],
     services: p.services ?? [],
     location: p.location ?? 'Unknown',
-    distanceMiles: p.distanceMiles ?? 0,
+    // Explicit null means "unknown"; only a missing value defaults to 0.
+    distanceMiles: p.distanceMiles === undefined ? 0 : p.distanceMiles,
     verification: {
       status: 'unchecked',
       registry: '',

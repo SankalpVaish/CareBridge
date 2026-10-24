@@ -6,16 +6,27 @@
 import { useMemo, useState } from 'react'
 import { PageHeader, Card, Badge } from '../../shared/ui.jsx'
 import { providers, demoPatient } from '../../data/mockData.js'
+import { rankProviders } from './ranking.js'
+import HowWeRank from './HowWeRank.jsx'
 
 const isVerified = (p) => p.verification.status === 'verified'
+const hasKnownDistance = (p) => typeof p.distanceMiles === 'number'
+
+const REASON_STYLES = {
+  good: { icon: '✓', className: 'text-green-700' },
+  neutral: { icon: '•', className: 'text-slate-600' },
+  warn: { icon: '!', className: 'text-amber-700' },
+}
 
 export default function FindPage() {
   const [query, setQuery] = useState('cardiology')
-  const [verifiedOnly, setVerifiedOnly] = useState(false)
+  // On by default: unverified listings are hidden unless the user asks (PLAN §6, §9).
+  const [verifiedOnly, setVerifiedOnly] = useState(true)
+  const [showHowWeRank, setShowHowWeRank] = useState(false)
 
-  const results = useMemo(() => {
+  const { results, hiddenCount } = useMemo(() => {
     const q = query.trim().toLowerCase()
-    return providers
+    const matches = providers
       .filter((p) => p.specialties.some((s) => s !== 'primary care'))
       .filter((p) =>
         q === ''
@@ -23,8 +34,11 @@ export default function FindPage() {
           : p.name.toLowerCase().includes(q) ||
             p.specialties.some((s) => s.includes(q)),
       )
-      .filter((p) => (verifiedOnly ? isVerified(p) : true))
-      .sort((a, b) => a.distanceMiles - b.distanceMiles)
+    const shown = verifiedOnly ? matches.filter(isVerified) : matches
+    return {
+      results: rankProviders(shown, demoPatient),
+      hiddenCount: matches.length - shown.length,
+    }
   }, [query, verifiedOnly])
 
   return (
@@ -57,17 +71,35 @@ export default function FindPage() {
           </label>
         </div>
         <p className="mt-2 text-xs text-slate-500">
-          Distances are from {demoPatient.location} (Maria’s town).
+          Distances are from {demoPatient.location} (Maria’s town). Ranked by
+          evidence, never by payment.{' '}
+          <button
+            type="button"
+            onClick={() => setShowHowWeRank(true)}
+            className="font-medium text-brand-600 hover:underline"
+          >
+            How we rank
+          </button>
         </p>
+        {verifiedOnly && hiddenCount > 0 && (
+          <p className="mt-2 text-xs text-amber-700">
+            {hiddenCount} unverified {hiddenCount === 1 ? 'listing is' : 'listings are'}{' '}
+            hidden. Untick “Verified only” to see {hiddenCount === 1 ? 'it' : 'them'} with
+            warnings.
+          </p>
+        )}
       </Card>
 
       {/* Results */}
       <div className="space-y-3">
-        {results.map((p) => (
+        {results.map(({ provider: p, score, reasons }, i) => (
           <Card key={p.id}>
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <div className="flex items-center gap-2">
+                  {score != null && (
+                    <span className="text-sm font-semibold text-slate-400">#{i + 1}</span>
+                  )}
                   <h2 className="font-semibold text-slate-900">{p.name}</h2>
                   {isVerified(p) ? (
                     <Badge tone="green">✓ Verified</Badge>
@@ -76,21 +108,49 @@ export default function FindPage() {
                   )}
                 </div>
                 <p className="mt-1 text-sm text-slate-600">
-                  {p.specialties.join(', ')} · {p.location} · {p.distanceMiles} mi
+                  {p.specialties.join(', ')} · {p.location} ·{' '}
+                  {hasKnownDistance(p) ? (
+                    `${p.distanceMiles} mi`
+                  ) : (
+                    <span className="text-red-700">distance unknown (no address)</span>
+                  )}
                 </p>
+                {/* No star ratings: they are easy to fake and not a ranking signal (X-6). */}
                 <p className="mt-1 text-sm text-slate-600">
-                  ★ {p.rating.toFixed(1)} ({p.reviewCount} reviews) · wait{' '}
-                  {p.waitDays} days
+                  Typical wait {p.waitDays} days
                   {p.offersTelehealth && ' · telehealth available'}
                 </p>
               </div>
               <div className="text-right">
-                <p className="text-sm font-semibold text-slate-900">
+                {score != null && (
+                  <>
+                    <p className="text-sm font-semibold text-slate-900">
+                      {Math.round(score * 100)}/100
+                    </p>
+                    <p className="text-xs text-slate-500">match score</p>
+                  </>
+                )}
+                <p className="mt-2 text-sm font-semibold text-slate-900">
                   ${p.consultFeeUsd}
                 </p>
                 <p className="text-xs text-slate-500">consult fee</p>
               </div>
             </div>
+
+            {/* Why it is ranked here (B-13, B-14) */}
+            <ul className="mt-3 space-y-1 text-sm">
+              {reasons.map((r) => {
+                const style = REASON_STYLES[r.tone] ?? REASON_STYLES.neutral
+                return (
+                  <li key={r.text} className={`flex gap-2 ${style.className}`}>
+                    <span aria-hidden="true" className="w-3 text-center font-semibold">
+                      {style.icon}
+                    </span>
+                    {r.text}
+                  </li>
+                )
+              })}
+            </ul>
 
             {p.fraudSignals.length > 0 && (
               <div className="mt-3 rounded-lg bg-red-50 p-3 text-sm text-red-800">
@@ -110,6 +170,7 @@ export default function FindPage() {
         )}
       </div>
 
+      <HowWeRank open={showHowWeRank} onClose={() => setShowHowWeRank(false)} />
     </div>
   )
 }
