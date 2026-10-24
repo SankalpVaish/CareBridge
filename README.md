@@ -14,6 +14,7 @@ The research questions and open problems that keep rural patients from getting t
 
 1. [Overview](#1-overview)
 2. [Problem Statement](#2-problem-statement)
+   - [Key Facts](#key-facts)
 3. [Scope](#3-scope)
 4. [Observations](#4-observations)
 5. [Stakeholders](#5-stakeholders)
@@ -47,6 +48,23 @@ A rural patient who needs a specialist faces a chain of gaps. Any one of them ca
 6. **Continuity.** Conflicting prescriptions for the same condition erode trust, so patients switch doctors and restart care.
 
 The result is delayed diagnosis and treatment, wasted trips and money, exposure to fraud, and patients giving up on care altogether.
+
+### Key Facts
+
+These figures from official reports show that these problems occur around the world:
+
+| Problem | Region | Fact | Source |
+|---|---|---|---|
+| Too few specialists | United Kingdom | English coastal communities have 15% fewer consultants (senior specialists) per patient. | [Chief Medical Officer's Annual Report 2021: Health in Coastal Communities, DHSC (p. 15)](https://assets.publishing.service.gov.uk/media/60f98769e90e0703ba3c9f25/cmo-annual_report-2021-health-in-coastal-communities-summary-and-recommendations-accessible.pdf) |
+| Too few doctors | Canada | Rural areas have 0.9 doctors per 1,000 people, against 2.6 in urban areas. | [WHO Guideline on Health Workforce Development in Rural and Remote Areas, 2021 (p. 2)](https://iris.who.int/server/api/core/bitstreams/70210010-a0e0-4386-970c-11f342d6e01c/content) |
+| Distance | United States | When rural hospitals closed, the median distance to general inpatient care rose from 3.4 to 23.9 miles. | [GAO, Rural Hospital Closures (GAO-21-93), 2020](https://www.gao.gov/assets/gao-21-93.pdf) |
+| Distance and cost | Kenya | 31% of rural women say distance to a health facility is a serious problem in getting care (13% in urban areas), and 52% say getting money for treatment is (37% in urban areas). | [KNBS, Kenya Demographic and Health Survey 2022 (Table 9.19)](https://dhsprogram.com/pubs/pdf/FR380/FR380.pdf) |
+| Waiting times | Australia | 32.3% of people in outer regional or remote areas waited longer than they felt was acceptable for a specialist appointment, against 25.7% in major cities. | [Australian Bureau of Statistics, Patient Experiences 2024-25](https://www.abs.gov.au/statistics/health/health-services/patient-experiences/2024-25) |
+| Cost | India | Households pay 39.4% of the country's total health spending out of their own pockets, about ₹2,600 per person (2021-22). | [MoHFW / NHSRC, National Health Accounts Estimates for India 2021-22 (p. 3)](https://nhsrcindia.org/sites/default/files/2024-09/NHA%202021-22.pdf) |
+| Cost | Global | More than 1 billion people, about 14% of the world's population, faced catastrophic out-of-pocket health costs. | [WHO and World Bank, Tracking Universal Health Coverage: 2023 Global Monitoring Report](https://www.who.int/news/item/18-09-2023-billions-left-behind-on-the-path-to-universal-health-coverage) |
+| Telehealth gap | United States | 27.5% of adults in the most rural counties used telemedicine in 2021, against 40.3% in large city centres. | [CDC / NCHS, Data Brief No. 445, 2022 (p. 4)](https://www.cdc.gov/nchs/data/databriefs/db445.pdf) |
+
+*Notes:* The India and global cost figures cover whole populations, not only rural areas. The UK figure is for coastal communities, not rural areas specifically.
 
 ## 3. Scope
 
