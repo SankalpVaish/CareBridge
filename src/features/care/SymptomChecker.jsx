@@ -20,8 +20,14 @@ import { suggestCareTypeLLM, hasLlmKey } from './llmSymptomChecker.js'
 /**
  * @param {Object} props
  * @param {string} [props.initialText]  Seed text (e.g. the demo patient's words).
+ * @param {string} [props.title]
+ * @param {(result: object|null, text: string) => void} [props.onResult]  Called after each check, and with null on Clear.
  */
-export default function SymptomChecker({ initialText = '' }) {
+export default function SymptomChecker({
+  initialText = '',
+  title = 'What are you feeling?',
+  onResult,
+}) {
   const [text, setText] = useState(initialText)
   const [result, setResult] = useState(null)
   const [loading, setLoading] = useState(false)
@@ -49,16 +55,19 @@ export default function SymptomChecker({ initialText = '' }) {
     try {
       const r = await suggestCareTypeLLM(query, { signal: controller.signal })
       setResult(r)
+      onResult?.(r, query)
     } catch (err) {
       if (err?.name !== 'AbortError') {
-        setResult({
+        const fallback = {
           kind: 'unclear',
           careType: '',
           headline: 'Something went wrong. A general doctor is a safe first step.',
           notes: [],
           matchedWords: [],
           source: 'offline',
-        })
+        }
+        setResult(fallback)
+        onResult?.(fallback, query)
       }
     } finally {
       setLoading(false)
@@ -73,7 +82,7 @@ export default function SymptomChecker({ initialText = '' }) {
   return (
     <Card>
       <div className="flex items-center justify-between gap-2">
-        <h2 className="font-semibold text-slate-900">What are you feeling?</h2>
+        <h2 className="font-semibold text-slate-900">{title}</h2>
         <Badge tone="slate">A-1..A-5</Badge>
       </div>
       <p className="mt-1 text-sm text-slate-600">
@@ -111,6 +120,7 @@ export default function SymptomChecker({ initialText = '' }) {
                 setText('')
                 setResult(null)
                 setLoading(false)
+                onResult?.(null, '')
               }}
             >
               Clear

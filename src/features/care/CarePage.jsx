@@ -1,14 +1,38 @@
 /**
  * Care & Cost — reads the shared demo patient and renders a triage +
  * cost/coverage view from mock data. See TODO.md for what's left to build
- * (research questions A-1..A-16 in README.md).
+ * (research questions A-1..A-17 in README.md).
  */
+import { useEffect, useState } from 'react'
 import { PageHeader, Card, Badge, money } from '../../shared/ui.jsx'
 import { demoPatient, providers, schemes, byId } from '../../data/mockData.js'
+import { useAuth } from '../../app/AuthContext.jsx'
 import { estimateCost } from './costEstimator.js'
-import SymptomChecker from './SymptomChecker.jsx'
+import PatientTriage from './PatientTriage.jsx'
+import ChwTriage from './ChwTriage.jsx'
+
+const MODES = [
+  {
+    id: 'patient',
+    label: 'I need help',
+    hint: 'Private. Nothing is saved unless you share it with your health worker.',
+  },
+  {
+    id: 'chw',
+    label: 'I’m a health worker',
+    hint: 'Check symptoms with a patient, record readings, and pick up checks patients shared with you.',
+  },
+]
 
 export default function CarePage() {
+  const { user } = useAuth()
+  const [mode, setMode] = useState(user?.role === 'chw' ? 'chw' : 'patient')
+
+  // The signed-in user is restored after first render; open CHW mode for CHWs.
+  useEffect(() => {
+    if (user?.role === 'chw') setMode('chw')
+  }, [user])
+
   // Use the cheapest verified cardiology provider for the demo estimate.
   const provider = byId.provider('prov-cardio-county')
   const estimate = estimateCost(demoPatient, provider)
@@ -22,9 +46,17 @@ export default function CarePage() {
         accent="care"
       />
 
+      <ModeSwitch mode={mode} onChange={setMode} />
+
       <div className="grid gap-5 lg:grid-cols-2">
-        {/* Symptom recognition (ties to O1, A-1..A-5) */}
-        <SymptomChecker initialText={demoPatient.primarySymptom} />
+        {/* Symptom recognition, patient or CHW mode (ties to O1, A-1..A-8) */}
+        {mode === 'chw' ? (
+          <div className="lg:col-span-2">
+            <ChwTriage />
+          </div>
+        ) : (
+          <PatientTriage initialText={demoPatient.primarySymptom} />
+        )}
 
         {/* Cost estimate (ties to O8, A-7, A-8) */}
         <Card>
@@ -81,6 +113,35 @@ export default function CarePage() {
         </Card>
       </div>
 
+    </div>
+  )
+}
+
+function ModeSwitch({ mode, onChange }) {
+  const current = MODES.find((m) => m.id === mode)
+  return (
+    <div className="mb-5">
+      <div
+        role="group"
+        aria-label="Who is using this?"
+        className="inline-flex rounded-lg border border-slate-200 bg-white p-1"
+      >
+        {MODES.map((m) => (
+          <button
+            key={m.id}
+            type="button"
+            aria-pressed={mode === m.id}
+            onClick={() => onChange(m.id)}
+            className={[
+              'rounded-md px-4 py-2 text-sm font-medium transition-colors',
+              mode === m.id ? 'bg-care text-white' : 'text-slate-600 hover:bg-slate-100',
+            ].join(' ')}
+          >
+            {m.label}
+          </button>
+        ))}
+      </div>
+      <p className="mt-2 text-sm text-slate-600">{current.hint}</p>
     </div>
   )
 }

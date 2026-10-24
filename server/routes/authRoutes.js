@@ -11,9 +11,9 @@ import {
   signToken,
   requireAuth,
 } from '../auth.js'
+import { USER_ROLES as ROLES } from '../../src/shared/models.js'
 
 const router = Router()
-const ROLES = ['patient', 'pcp', 'specialist']
 
 /** Strip the password hash before sending a user to the client. */
 function publicUser(row) {

@@ -9,6 +9,7 @@ import cors from 'cors'
 import './db.js' // initialize + seed the database on boot
 import authRoutes from './routes/authRoutes.js'
 import referralRoutes from './routes/referralRoutes.js'
+import triageRoutes from './routes/triageRoutes.js'
 
 const app = express()
 const PORT = process.env.PORT || 4000
@@ -19,6 +20,7 @@ app.use(express.json())
 app.get('/api/health', (_req, res) => res.json({ ok: true }))
 app.use('/api/auth', authRoutes)
 app.use('/api/referrals', referralRoutes)
+app.use('/api/triage', triageRoutes)
 
 app.listen(PORT, () => {
   console.log(`[server] API listening on http://localhost:${PORT}`)

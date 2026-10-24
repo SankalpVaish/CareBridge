@@ -22,11 +22,14 @@ the Vite URL (http://localhost:5173) in your browser.
 - Backend is Express + embedded SQLite (`server/`). The database file
   (`server/data/app.db`) is created and seeded on first boot — it's gitignored.
 - To reset the demo to a clean state, delete `server/data/app.db` and restart
-  the server; it reseeds automatically.
+  the server; it reseeds automatically. **Do this once after pulling the CHW
+  role** — an older database rejects `chw` accounts (the server warns on boot).
 - Seeded demo accounts (password `demo1234`): `maria@example.com` (patient),
-  `pcp@example.com` (PCP), `specialist@example.com` (specialist).
+  `pcp@example.com` (PCP), `specialist@example.com` (specialist),
+  `chw@example.com` (community health worker Ana Torres, who looks after Maria).
 - Roles live in the shared contract (`src/shared/models.js`): `patient`, `pcp`,
-  `specialist`. The Coordinate section is role-filtered via the API.
+  `specialist`, `chw`. Coordinate and Care's health-worker mode are
+  role-filtered via the API (`/api/referrals`, `/api/triage`).
 - `JWT_SECRET` has a dev-only fallback; set it as an env var for any real deploy.
 
 ## Who owns what

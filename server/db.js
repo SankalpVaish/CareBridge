@@ -30,7 +30,7 @@ db.exec(`
     name        TEXT NOT NULL,
     email       TEXT NOT NULL UNIQUE,
     password    TEXT NOT NULL,            -- bcrypt hash, never plaintext
-    role        TEXT NOT NULL CHECK (role IN ('patient','pcp','specialist')),
+    role        TEXT NOT NULL CHECK (role IN ('patient','pcp','specialist','chw')),
     provider_id TEXT,                     -- pcp/specialist: provider they act as
     patient_id  TEXT,                     -- patient: their patient record
     created_at  TEXT NOT NULL
@@ -62,7 +62,38 @@ db.exec(`
     timeline          TEXT NOT NULL DEFAULT '[]',   -- JSON array of strings
     missing_info      TEXT NOT NULL DEFAULT '[]'    -- JSON array of strings
   );
+
+  -- Which patients each community health worker looks after.
+  CREATE TABLE IF NOT EXISTS chw_patients (
+    chw_user_id TEXT NOT NULL REFERENCES users(id),
+    patient_id  TEXT NOT NULL REFERENCES patients(id),
+    PRIMARY KEY (chw_user_id, patient_id)
+  );
+
+  -- Symptom checks. Patient mode saves nothing until the patient shares, so
+  -- every row here is visible to the CHW named in chw_user_id.
+  CREATE TABLE IF NOT EXISTS triage_sessions (
+    id               TEXT PRIMARY KEY,
+    patient_id       TEXT NOT NULL REFERENCES patients(id),
+    chw_user_id      TEXT NOT NULL REFERENCES users(id),
+    started_in       TEXT NOT NULL CHECK (started_in IN ('patient','chw')),
+    status           TEXT NOT NULL CHECK (status IN ('shared','reviewed')),
+    symptom_text     TEXT NOT NULL,
+    result           TEXT NOT NULL,                 -- JSON CareSuggestion
+    readings         TEXT NOT NULL DEFAULT '{}',    -- JSON, recorded by the CHW
+    consent_recorded INTEGER NOT NULL DEFAULT 0,
+    created_at       TEXT NOT NULL,
+    updated_at       TEXT NOT NULL
+  );
 `)
+
+const usersTableSql =
+  db.prepare("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'users'").get()?.sql ?? ''
+if (!usersTableSql.includes("'chw'")) {
+  console.warn(
+    '[db] server/data/app.db predates the CHW role. Delete it and restart the server to reseed.',
+  )
+}
 
 // --- Seed (only if empty) --------------------------------------------------
 const userCount = db.prepare('SELECT COUNT(*) AS n FROM users').get().n
@@ -105,6 +136,15 @@ if (userCount === 0) {
     password: hash, role: 'specialist', provider_id: 'prov-cardio-county', patient_id: null,
     created_at: now,
   })
+  insertUser.run({
+    id: 'user-chw', name: 'Ana Torres', email: 'chw@example.com',
+    password: hash, role: 'chw', provider_id: null, patient_id: null,
+    created_at: now,
+  })
+  db.prepare('INSERT INTO chw_patients (chw_user_id, patient_id) VALUES (?, ?)').run(
+    'user-chw',
+    'patient-maria',
+  )
 
   // Maria's referral — same data as the original mock.
   db.prepare(`
@@ -131,7 +171,7 @@ if (userCount === 0) {
     missing_info: JSON.stringify(['Recent blood work (lipid panel)']),
   })
 
-  console.log('[db] Seeded demo data (3 users, password: demo1234)')
+  console.log('[db] Seeded demo data (4 users, password: demo1234)')
 }
 
 export default db

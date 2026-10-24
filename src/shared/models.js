@@ -30,6 +30,7 @@
  * @property {number} monthlyBudgetUsd    What the household can spend (ties to A-17)
  * @property {string[]} schemeIds         Insurance / govt schemes held (ties to A-13)
  * @property {string[]} transport         Ways the patient can travel, e.g. ['community shuttle'] (ties to B-5)
+ * @property {number|null} maxTravelMiles  Furthest the patient can travel one way; null = no limit given (ties to B-3)
  * @property {string} [primarySymptom]    Free-text symptom in patient words (ties to A-5)
  */
 
@@ -55,7 +56,7 @@
  * @property {string} location
  * @property {number|null} distanceMiles  From the demo patient; null = unknown (no physical address) (ties to B-3)
  * @property {Verification} verification  License / accreditation check (ties to O4, B-10, B-11)
- * @property {string[]} fraudSignals      Warning signs found for this provider (ties to O4, B-9, B-12)
+ * @property {string[]} fraudSignals      Warning-sign codes, e.g. 'upfront_payment'; explained in src/features/find/trust.js (ties to O4, B-9, B-12)
  * @property {string[]} languages         Languages staff can consult in (ties to A-9)
  * @property {number|null} loopClosureRate  Share of referrals (0..1) whose findings returned to the referring clinic; null = no history (ties to O7, B-14)
  * @property {number} rating              0..5 average. Not a ranking signal (ties to X-6)
@@ -67,23 +68,44 @@
  */
 
 /**
- * @typedef {'patient'|'pcp'|'specialist'} UserRole
+ * @typedef {'patient'|'pcp'|'specialist'|'chw'} UserRole
  *
- * Roles that access the app (ties to the three people who see a referral):
+ * Roles that access the app:
  *   - patient:    the person receiving care (e.g. Maria)
  *   - pcp:        primary-care provider who makes the referral
  *   - specialist: the specialist the referral is sent to
+ *   - chw:        community health worker who checks symptoms with patients (A-7)
  */
 
-/** The three roles, shared by frontend and backend so they never drift. */
-export const USER_ROLES = ['patient', 'pcp', 'specialist']
+/** The roles, shared by frontend and backend so they never drift. */
+export const USER_ROLES = ['patient', 'pcp', 'specialist', 'chw']
 
 /** Human-readable role labels. */
 export const USER_ROLE_LABELS = {
   patient: 'Patient',
   pcp: 'Primary-care provider',
   specialist: 'Specialist',
+  chw: 'Community health worker',
 }
+
+/**
+ * @typedef {Object} TriageSession
+ * A symptom check saved for a CHW. Patient mode saves nothing until the
+ * patient taps "Share with my CHW" (A-8, X-3).
+ * @property {string} id
+ * @property {string} patientId
+ * @property {string} patientName
+ * @property {string} chwUserId
+ * @property {string} chwName
+ * @property {'patient'|'chw'} startedIn   Which mode the check began in
+ * @property {'shared'|'reviewed'} status  shared = waiting for the CHW; reviewed = CHW saved it
+ * @property {string} symptomText          The patient's own words (A-5)
+ * @property {Object} result               CareSuggestion from the symptom checker
+ * @property {{temperature?: string, bloodPressure?: string, pulse?: string, weight?: string}} readings
+ * @property {boolean} consentRecorded
+ * @property {string} createdAt
+ * @property {string} updatedAt
+ */
 
 /**
  * @typedef {Object} User
@@ -153,6 +175,7 @@ export function makePatient(p = {}) {
     monthlyBudgetUsd: p.monthlyBudgetUsd ?? 0,
     schemeIds: p.schemeIds ?? [],
     transport: p.transport ?? [],
+    maxTravelMiles: p.maxTravelMiles ?? null,
     primarySymptom: p.primarySymptom ?? '',
   }
 }

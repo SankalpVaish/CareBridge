@@ -1,6 +1,6 @@
 /**
  * Sign-up page. Collects name, email, password, and a ROLE (Patient / PCP /
- * Specialist). The role shapes what the user sees once signed in.
+ * Specialist / CHW). The role shapes what the user sees once signed in.
  */
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
@@ -12,6 +12,7 @@ const ROLE_HINTS = {
   patient: 'You are receiving care and want to track your referral.',
   pcp: 'You refer patients to specialists and want to see outcomes.',
   specialist: 'You receive referrals and need the patient’s information.',
+  chw: 'You check symptoms with patients in your community and help them get care.',
 }
 
 export default function SignUp() {

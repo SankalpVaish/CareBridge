@@ -43,4 +43,8 @@ export const api = {
   listReferrals: () => request('/referrals'),
   updateReferral: (id, action) =>
     request(`/referrals/${id}`, { method: 'PATCH', body: action }),
+  listTriage: () => request('/triage'),
+  listChwPatients: () => request('/triage/patients'),
+  createTriage: (payload) => request('/triage', { method: 'POST', body: payload }),
+  updateTriage: (id, payload) => request(`/triage/${id}`, { method: 'PATCH', body: payload }),
 }

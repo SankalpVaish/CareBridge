@@ -3,6 +3,7 @@ import Layout from './Layout.jsx'
 import Home from './Home.jsx'
 import CarePage from '../features/care/CarePage.jsx'
 import FindPage from '../features/find/FindPage.jsx'
+import SafetyPage from '../features/find/SafetyPage.jsx'
 import CoordinatePage from '../features/coordinate/CoordinatePage.jsx'
 import SignIn from './SignIn.jsx'
 import SignUp from './SignUp.jsx'
@@ -18,6 +19,7 @@ export default function App() {
         <Route path="/signup" element={<SignUp />} />
         <Route path="/care" element={<CarePage />} />
         <Route path="/find" element={<FindPage />} />
+        <Route path="/find/safety" element={<SafetyPage />} />
         {/* Coordinate is now dynamic and role-aware — requires sign-in. */}
         <Route
           path="/coordinate"

@@ -88,6 +88,7 @@ function DemoHint() {
         <li>maria@example.com — Patient</li>
         <li>pcp@example.com — Primary-care provider</li>
         <li>specialist@example.com — Specialist</li>
+        <li>chw@example.com — Community health worker</li>
       </ul>
     </div>
   )
