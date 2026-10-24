@@ -1,5 +1,5 @@
 /**
- * Express API server for the Rural Specialty-Care Navigator.
+ * Express API server for CareBridge: Rural Specialty Care Navigator.
  *
  * Run: npm run server   (or npm run dev:all to run API + Vite together)
  * Storage: embedded SQLite (server/data/app.db), seeded on first boot.

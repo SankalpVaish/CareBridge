@@ -69,7 +69,11 @@ export default function Layout({ children }) {
             <span className="grid h-8 w-8 place-items-center rounded-lg bg-brand-600 text-white font-bold">
               +
             </span>
-            <span className="font-semibold">Rural Specialty-Care Navigator</span>
+            <span className="font-semibold">
+              CareBridge
+              {/* The subtitle hides on small screens so the menu still fits. */}
+              <span className="hidden font-normal text-slate-600 md:inline">: Rural Specialty Care Navigator</span>
+            </span>
           </Link>
           <div className="flex items-center gap-3">
             <nav aria-label="Main" className="flex gap-1">

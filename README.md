@@ -1,295 +1,200 @@
-# Rural Specialty-Care Access: Problem Discovery
+# CareBridge: Rural Specialty Care Navigator
 
-The open problems that keep rural patients from getting timely specialty care, and that existing products leave unsolved.
+CareBridge helps people in rural areas get to the right specialist, afford the visit, and get the specialist's answer back to their own clinic.
 
-| | |
-|---|---|
-| **Stage** | Problem discovery |
-| **Team** | 3 members, one per workstream |
-| **Last updated** | 2026-10-24 |
+> **Demo software.** All patients, providers, doctors, insurance plans, and programmes in this app are made up. It gives guidance on where to go and what help exists. It never diagnoses, never recommends treatment, and never suggests changing medicines. Clinical decisions stay with qualified professionals.
 
 ---
 
 ## Contents
 
-1. [Overview](#1-overview)
-2. [Problem Statement](#2-problem-statement)
-   - [Key Facts](#key-facts)
-3. [Scope](#3-scope)
-4. [Observations](#4-observations)
-5. [Stakeholders](#5-stakeholders)
-6. [Research Questions](#6-research-questions)
-   - [6.1 Workstream A: Assess and Afford](#61-workstream-a-assess-and-afford)
-   - [6.2 Workstream B: Match and Get There](#62-workstream-b-match-and-get-there)
-   - [6.3 Workstream C: Refer and Close the Loop](#63-workstream-c-refer-and-close-the-loop)
-   - [6.4 Cross-Cutting Questions](#64-cross-cutting-questions)
-7. [Coverage Matrix](#7-coverage-matrix)
-8. [Related Documents](#8-related-documents)
+1. [The problem](#the-problem)
+2. [What the app does](#what-the-app-does)
+3. [A walk-through](#a-walk-through)
+4. [How we answer each problem](#how-we-answer-each-problem)
+5. [Safety and privacy](#safety-and-privacy)
+6. [Getting started](#getting-started)
+7. [Project structure](#project-structure)
+8. [Limitations and next steps](#limitations-and-next-steps)
+9. [Related documents](#related-documents)
 
 ---
 
-## 1. Overview
-
-This document lists the problems we need to understand before we design anything. It contains no solutions. It covers only the problems that existing products don't solve (see [Section 3](#3-scope)). Each question:
-
-- has a unique ID, so the team can refer to it in discussion and in later documents;
-- belongs to one workstream, which has a single owner;
-- is linked to the observations it investigates (Section 7).
-
-## 2. Problem Statement
+## The problem
 
 A rural patient who needs a specialist faces a chain of gaps. Any one of them can delay or stop care:
 
-1. **Recognition.** The patient may not know how serious a symptom is, or what kind of doctor to see.
-2. **Availability.** The treatment needed may not be offered locally, so the patient must travel far to centres they don't know.
-3. **Trust.** Patients can't tell which providers are legitimate, and online platforms sell the top search spots.
-4. **Affordability.** The full cost is unclear, budgets are limited, and schemes and financial aid are hard to find and claim.
-5. **Coordination.** Referrals get lost, and the specialist's findings rarely make it back to the clinic, the community health worker, or the patient.
-6. **Continuity.** Conflicting prescriptions for the same condition erode trust, so patients switch doctors and restart care.
+- **Recognition.** They may not know how serious a symptom is, or what kind of doctor to see.
+- **Availability.** The treatment they need may not be offered locally.
+- **Trust.** They can't tell which providers are legitimate, and online platforms sell the top search spots.
+- **Affordability.** The full cost is unclear, and help paying for it is hard to find.
+- **Coordination.** Referrals get lost, and the specialist's findings rarely make it back to the clinic or the patient.
 
-The result is delayed diagnosis and treatment, wasted trips and money, exposure to fraud, and patients giving up on care altogether.
+The result is late diagnosis, wasted trips and money, exposure to fraud, and people giving up on care. Official reports show this happens around the world:
 
-### Key Facts
-
-These figures from official reports show that these problems occur around the world:
-
-| Problem | Region | Fact | Source |
-|---|---|---|---|
-| Too few specialists | United Kingdom | English coastal communities have 15% fewer consultants (senior specialists) per patient. | [Chief Medical Officer's Annual Report 2021: Health in Coastal Communities, DHSC (p. 15)](https://assets.publishing.service.gov.uk/media/60f98769e90e0703ba3c9f25/cmo-annual_report-2021-health-in-coastal-communities-summary-and-recommendations-accessible.pdf) |
-| Too few doctors | Canada | Rural areas have 0.9 doctors per 1,000 people, against 2.6 in urban areas. | [WHO Guideline on Health Workforce Development in Rural and Remote Areas, 2021 (p. 2)](https://iris.who.int/server/api/core/bitstreams/70210010-a0e0-4386-970c-11f342d6e01c/content) |
-| Distance | United States | When rural hospitals closed, the median distance to general inpatient care rose from 3.4 to 23.9 miles. | [GAO, Rural Hospital Closures (GAO-21-93), 2020](https://www.gao.gov/assets/gao-21-93.pdf) |
-| Distance and cost | Kenya | 31% of rural women say distance to a health facility is a serious problem in getting care (13% in urban areas), and 52% say getting money for treatment is (37% in urban areas). | [KNBS, Kenya Demographic and Health Survey 2022 (Table 9.19)](https://dhsprogram.com/pubs/pdf/FR380/FR380.pdf) |
-| Delays reaching a specialist | Australia | 32.3% of people in outer regional or remote areas waited longer than they felt was acceptable for a specialist appointment, against 25.7% in major cities. | [Australian Bureau of Statistics, Patient Experiences 2024-25](https://www.abs.gov.au/statistics/health/health-services/patient-experiences/2024-25) |
-| Cost | India | Households pay 39.4% of the country's total health spending out of their own pockets, about ₹2,600 per person (2021-22). | [MoHFW / NHSRC, National Health Accounts Estimates for India 2021-22 (p. 3)](https://nhsrcindia.org/sites/default/files/2024-09/NHA%202021-22.pdf) |
-| Cost | Global | More than 1 billion people, about 14% of the world's population, faced catastrophic out-of-pocket health costs. | [WHO and World Bank, Tracking Universal Health Coverage: 2023 Global Monitoring Report](https://www.who.int/news/item/18-09-2023-billions-left-behind-on-the-path-to-universal-health-coverage) |
-| Existing telehealth reaches rural people less | United States | 27.5% of adults in the most rural counties used telemedicine in 2021, against 40.3% in large city centres. | [CDC / NCHS, Data Brief No. 445, 2022 (p. 4)](https://www.cdc.gov/nchs/data/databriefs/db445.pdf) |
-
-*Notes:* The India and global cost figures cover whole populations, not only rural areas. The UK figure is for coastal communities, not rural areas specifically.
-
-## 3. Scope
-
-**Focus areas.** These are problems that existing products leave unsolved for rural patients:
-- Knowing how urgent a symptom is and where to go first
-- Specialist care that isn't available locally
-- Transportation to distant centres
-- Trust in providers, and fraud
-- Full cost, insurance coverage constraints, and financial aid
-- Referral coordination between primary care and specialists
-- Communication of findings back to the clinic, the CHW, and the patient
-- Different prescriptions for the same condition
-- Administrative burden of referrals and claims
-
-**Already addressed by existing products (out of focus)**
-
-| Problem | Already addressed by |
-|---|---|
-| Finding doctors, clinics, and hospitals nearby | Practo and similar directories |
-| Comparing doctors through patient reviews | Practo patient feedback |
-| Booking appointments and managing queues | Practo, Qikwell by Practo |
-| Video consultations | Practo, national telemedicine services (e.g. eSanjeevani in India) |
-| Storing personal medical records | Practo Drive |
-| Booking lab tests | Practo |
-
-These products work mainly for city patients who have a smartphone. The gaps they leave for rural patients are listed under focus areas above.
-
-**Out of scope**
-- **Clinical decisions.** Diagnosis, treatment choice, and prescribing remain with qualified professionals.
-- **Solution design.** Covered in [PLAN.md](PLAN.md).
-
-## 4. Observations
-
-Each observation states who is affected, what the problem is, and what it leads to.
-
-| ID | Observation | Workstream |
+| Region | Fact | Source |
 |---|---|---|
-| O1 | Patients can't tell how serious a symptom is or what kind of care it needs, so they delay care, self-medicate, or see the wrong provider first. | A |
-| O2 | Many specialist services don't exist locally, so patients must travel to distant centres they know nothing about. | B |
-| O3 | Seeing a specialist can take several trips and a full day of travel, and every follow-up repeats it. | B |
-| O4 | Unlicensed practitioners, middlemen (touts), and "guaranteed cure" clinics take advantage of patients who don't know where to go. Patients can't check who is legitimate, and online platforms sell the top search spots. | B |
-| O5 | The full cost of care, including travel, lodging, and lost wages, isn't known up front and often exceeds what families can pay. | A |
-| O6 | Insurance, government schemes, and financial aid exist, but patients can't easily find out what they qualify for or how to apply. | A |
-| O7 | Referrals often stall: specialists receive incomplete information, and primary-care clinicians rarely learn whether the patient was seen. | C |
-| O8 | Patients often leave a specialist visit without understanding what was said or what to do next, and their clinic and CHW never hear the findings. | C |
-| O9 | Different doctors prescribe different medicines for the same condition, so patients lose trust and keep switching doctors. | C |
-| O10 | Paperwork such as referral letters, pre-authorization, and scheme claims takes up clinic time and delays care. | A, C |
+| Canada | Rural areas have 0.9 doctors per 1,000 people, against 2.6 in urban areas. | [WHO, 2021 (p. 2)](https://iris.who.int/server/api/core/bitstreams/70210010-a0e0-4386-970c-11f342d6e01c/content) |
+| United States | When rural hospitals closed, the median distance to inpatient care rose from 3.4 to 23.9 miles. | [GAO-21-93, 2020](https://www.gao.gov/assets/gao-21-93.pdf) |
+| Australia | 32.3% of people in outer regional or remote areas waited longer than acceptable for a specialist, against 25.7% in major cities. | [ABS, Patient Experiences 2024-25](https://www.abs.gov.au/statistics/health/health-services/patient-experiences/2024-25) |
+| Kenya | 31% of rural women say distance to a health facility is a serious problem (13% in urban areas). | [KNBS, DHS 2022 (Table 9.19)](https://dhsprogram.com/pubs/pdf/FR380/FR380.pdf) |
+| Global | More than 1 billion people faced catastrophic out-of-pocket health costs. | [WHO and World Bank, 2023](https://www.who.int/news/item/18-09-2023-billions-left-behind-on-the-path-to-universal-health-coverage) |
 
-## 5. Stakeholders
-
-| Stakeholder | How the problem affects them |
-|---|---|
-| Patients and families | Delayed care, wasted trips, unexpected costs, exposure to fraud |
-| Community health workers (CHWs) | Often the first point of contact, but have no reliable way to judge urgency or to learn what happened after a referral |
-| Primary-care clinicians and rural clinics | Refer patients out, then lose visibility of what happened |
-| Specialists and specialist centres | Receive incomplete referrals, no-shows, and patients who come too late |
-| Insurers and government schemes | Coverage rules and paperwork that patients often don't understand |
-| NGOs, charities, and scholarship funders | Aid goes unclaimed because eligible people never learn it exists |
+Existing products such as doctor directories and video-consultation services work well for city patients with smartphones. They don't help with these rural gaps. The full research, including all observations and research questions, is in [docs/research.md](docs/research.md).
 
 ---
 
-## 6. Research Questions
+## What the app does
 
-| Workstream | Focus | Owner | Observations |
+The app has three sections. People can use it as a **patient**, a **community health worker**, a **primary-care clinician**, or a **specialist**.
+
+### Care & Cost: what's wrong, what will it cost, and who can help pay
+
+- **Symptom check** in the patient's own words, in English or Spanish. Danger signs are checked first, before any AI is used. If one is found, the app shows a **Call 911** button and the nearest emergency department.
+- **What kind of care and how soon,** for example "Heart specialist · Be seen within 1–2 weeks". Two optional questions ("How long?", "Getting worse?") make the timing more accurate.
+- **Find this care near you,** a button that opens Find & Trust with the right search. It shows the nearest verified family doctor as the first step.
+- **Private by default.** A patient can share a check with their community health worker, who continues it without asking the same questions again. The health worker records consent and readings, and can **send the check to the patient's clinic**.
+- **Full cost of the visit:** consultation, tests, treatment, medicines, travel, lodging, and lost wages. Every amount can be edited, and the estimate shows a best-to-worst range and how much is known up front.
+- **Check my coverage:** enter a member number to see what an insurance plan or Medicaid pays for this visit, including the deductible, copay, network, and which items need approval first.
+- **Help paying:** programmes the patient already has, ones they can apply for (with the reason, the steps, and a document checklist), and what each would save.
+- **Easy-read mode** with larger text and read-aloud.
+
+### Find & Trust: the right place, one you can trust, and how to get there
+
+- **Search by treatment or test,** for example "echocardiogram", not only by specialty.
+- **Verified providers only by default.** Unverified listings are hidden unless you ask to see them, and then they come with warnings.
+- **Ranking nobody can buy.** Results are ranked on evidence (findings sent back to clinics, travel, cost, wait, language) with the reasons shown on each result. The weights are published in a "How we rank" window. There are no star ratings and no paid placements.
+- **When nothing is nearby,** the search widens to the nearest verified centres further away and says so.
+- **Trip plan** for each provider: ways to get there, round-trip fare, when to leave, and whether an overnight stay is likely.
+- **Provider pages** list the doctors who do the searched treatment. Each doctor's record shows a checked license, board certification, patients treated last year, findings sent back, and feedback only from patients whose referral was completed.
+- **Stay safe** page: warning signs of fake clinics, a license lookup, flagged listings, and a "report this listing" button.
+
+### Coordinate: no referral gets lost
+
+- **Clinic inbox:** checks sent by health workers arrive here. The clinician decides whether to refer, and picks a specialist ranked the same way as Find & Trust.
+- **Referral tracker:** every stage from *requested* to *followed up*, a list of information the specialist is still waiting for, and a "mark stalled" option that records who the referral is waiting on and why.
+- **Findings back:** after the visit, the specialist writes a version for the clinic and a plain-language version for the patient, and approves both. The clinic and health worker receive them, and the patient sees the plain version.
+- **Loop-closure numbers are live.** Each completed findings return updates the "findings sent back" figure that Find & Trust uses in its ranking.
+
+---
+
+## A walk-through
+
+**Maria, 54,** lives in Cedar Falls. She has Medicaid, speaks English and Spanish, and can spend about $400 a month. Her chest feels tight when she walks uphill.
+
+1. **Care & Cost → What's wrong?** Maria describes the symptom. The app suggests a heart specialist and a check-up within 1–2 weeks, and tells her not to start or change medicine on her own.
+2. **Find this care near you** opens Find & Trust. The nearest verified family doctor is shown as the first step. Two verified heart centres are ranked with reasons, and a "miracle cure" clinic is hidden. Its warnings are visible if she asks to see it.
+3. **The provider page** for County Cardiology Clinic shows the doctors who do echocardiograms and their records. The trip plan shows a free Medicaid ride, or the $12 community shuttle.
+4. **What will it cost?** About $154 out of pocket today, and about $62 after applying for medical transport and a lost-wages fund. The **Help paying** step shows how to apply.
+5. **Her health worker,** Ana, saves the check with Maria's readings and **sends it to her clinic**.
+6. **Her family doctor** refers her from the **Clinic inbox** to a ranked, verified specialist.
+7. **The specialist** sees her, then sends findings back in two versions. Maria, Ana, and her clinic all receive them, and County Cardiology Clinic's "findings sent back" figure in Find & Trust goes up by one.
+
+---
+
+## How we answer each problem
+
+These are the ten observations from our research ([docs/research.md](docs/research.md#4-observations)).
+
+| # | Problem | How the app answers it | Status |
 |---|---|---|---|
-| A | Assess and Afford | Person 1 | O1, O5, O6, O10 |
-| B | Match and Get There | Person 2 | O2, O3, O4 |
-| C | Refer and Close the Loop | Person 3 | O7, O8, O9, O10 |
-| X | Cross-cutting | Shared | All |
+| **O1** | People can't tell how serious a symptom is or what care it needs, so they delay, self-medicate, or see the wrong provider. | Symptom check in plain words (English and Spanish); danger signs checked first with Call 911 and the nearest emergency department; care type and "how soon"; a link to the right care with the nearest family doctor as the first step; a fixed "don't start or change medicine on your own" note. | ✅ Answered |
+| **O2** | The specialist care they need isn't available locally. | Search by treatment or test; a travel-distance limit; a widened search to the nearest verified centres when nothing is close; provider pages showing what each place offers. | ✅ Answered |
+| **O3** | Seeing a specialist takes long, repeated trips. | Trip plan with fares, leave-by time, and overnight-stay warning (shared by Find & Trust, Coordinate, and the cost estimate); video follow-up shown for providers and doctors; travel help (medical transport, travel grant) under Help paying. | ✅ Answered |
+| **O4** | Fake practitioners and "guaranteed cure" clinics; no way to check who is legitimate; paid search rankings. | Verified-only by default; each warning sign explained; license lookup for providers and doctors; Stay safe page with reporting; published ranking with no paid placement and no star ratings; doctors' records built from evidence. | ✅ Answered |
+| **O5** | The full cost isn't known up front and often exceeds what families can pay. | Editable cost estimate covering travel, lodging, and lost wages, with a best-to-worst range, "% known up front", what each programme pays, and a budget check. | ✅ Answered |
+| **O6** | Insurance, schemes, and aid exist, but people can't tell what they qualify for or how to apply. | Help paying (have / can apply / other) with reasons, steps, and document checklists; Check my coverage for deductible, copay, network, and approvals. | ✅ Answered |
+| **O7** | Referrals stall, and clinics rarely learn whether the patient was seen. | Health worker sends the check to the clinic; clinic inbox; referral to a ranked, verified specialist; referral stages, missing-information list, who a stalled referral is waiting on and why, and a timeline visible to everyone involved. | ✅ Answered |
+| **O8** | Patients don't understand the findings, and the clinic and health worker never hear them. | Specialist sends findings back in a clinic version and a plain-language version, approved before sending; the clinic and health worker receive them; live "findings sent back" figures. | ✅ Answered |
+| **O9** | Different doctors prescribe different medicines, so patients lose trust and switch doctors. | Not built yet. Planned: when a specialist changes a medicine, record what changed and why, and explain it to the clinic, the health worker, and the patient. The app will never suggest changes itself. | 🔜 Planned |
+| **O10** | Paperwork (referral letters, approvals, claims) takes clinic time and delays care. | The health worker's check carries over so no one asks twice; the referral reason is filled in from the check; missing-information list; document checklists; approval warnings in Check my coverage. Referral letters and claim forms aren't generated yet. | ⚠️ Partly |
 
-### 6.1 Workstream A: Assess and Afford
+---
 
-**A.1 Recognizing the need**
+## Safety and privacy
 
-| ID | Question |
-|---|---|
-| A-1 | How do rural patients decide that a symptom needs a doctor, and what makes them wait? |
-| A-2 | Who do they ask first (family, CHW, pharmacist, traditional healer, internet), and how reliable is that advice? |
-| A-3 | How do people tell an emergency from something that can wait? What happens when they get it wrong? |
-| A-4 | How often do patients go to the wrong kind of doctor first, and what does that cost them in time and money? |
-| A-5 | What words do people use to describe their symptoms, and how far is that from medical language? |
-| A-6 | Where is the line between general health guidance and a clinical judgment that only a professional should make? |
+- **No diagnosis, no treatment advice.** The app suggests a *type* of care only. AI answers must choose from a fixed list of care types and timings, and are checked in code for disease names, medicine names, doses, and diagnostic phrasing (English and Spanish). Any match is discarded in favour of the offline rules.
+- **Emergencies first.** Danger-sign rules run locally before any AI call, so emergency advice never depends on the network.
+- **Clinicians decide.** Only the patient's clinician can make a referral. Only the specialist can send findings, and they approve the plain-language version before it goes out.
+- **Private by default.** Nothing from a patient's own check is saved unless they share it. Health workers record consent before starting. Patients and health workers see only the plain-language findings.
+- **Fair ranking.** No paid placement, no star ratings, published weights, and unverified providers hidden by default.
+- **Synthetic data only.** A real deployment would need to meet local health-privacy law (for example HIPAA in the US).
 
-**A.2 The CHW and the patient**
+---
 
-| ID | Question |
-|---|---|
-| A-7 | What role do CHWs play today in getting someone to specialist care, and where do they get stuck? |
-| A-8 | Which health concerns would patients rather raise privately than through a CHW from their own village? |
-| A-9 | Which languages, literacy levels, and digital skills must be accounted for? |
-| A-10 | What phones and internet access do patients and CHWs have? Are phones shared within a household? |
+## Getting started
 
-**A.3 Cost, coverage, and financial aid**
+**Requirements:** Node.js 18 or later.
 
-| ID | Question |
-|---|---|
-| A-11 | What does specialist care cost a rural family from start to finish (consultation, tests, treatment, medicines, travel, lodging, lost wages)? |
-| A-12 | How much of that cost is known before care starts? How often are families surprised by bills? |
-| A-13 | Which insurance or government schemes do rural patients hold, and do they know what is covered? |
-| A-14 | Which coverage rules block or delay care (approved-hospital lists, pre-authorization, claim paperwork)? |
-| A-15 | What scholarships, charity programs, or NGO aid exist for treatment, travel, or lodging, and why do they go unclaimed? |
-| A-16 | What documents and proof of eligibility do these programs require? Which are hardest for rural families to produce? |
-| A-17 | How do budget limits change patients' decisions (delaying care, picking cheaper but less suitable providers, stopping treatment partway)? |
+```bash
+npm install
+npm run dev:all
+```
 
-### 6.2 Workstream B: Match and Get There
+Then open **http://localhost:5173**. This starts the web app and the API (port 4000) together. You can also run them separately with `npm run dev` (web app) and `npm run server` (API).
 
-**B.1 Treatment not available locally**
+The Find & Trust search, the symptom check, and the cost estimate also work without the API. Signing in, health-worker mode, Coordinate, and live loop-closure figures need it.
 
-| ID | Question |
-|---|---|
-| B-1 | Which specialties and treatments are most often missing in rural areas? |
-| B-2 | When a treatment isn't available locally, how do patients and clinics find the nearest place that offers it? |
-| B-3 | How far are people willing and able to travel to see a specialist, and what limits that? |
+### Demo accounts
 
-**B.2 Getting there**
+All accounts use the password **`demo1234`**.
 
-| ID | Question |
-|---|---|
-| B-4 | How do rural patients get to specialist care, and what does the trip cost in money and time? |
-| B-5 | Which transport options exist (public bus, shared rides, community transport, government ambulance or non-emergency transport), and do people know about them? |
-| B-6 | How often is travel the main reason care is delayed or abandoned? |
-| B-7 | What extra burdens come with the trip (a companion, lodging, lost wages, childcare)? |
-| B-8 | How common are wasted trips (the doctor is unavailable, documents are missing, the wrong centre), and what causes them? |
-
-**B.3 Trust and fraud**
-
-| ID | Question |
-|---|---|
-| B-9 | What kinds of healthcare fraud target rural patients (fake doctors, "guaranteed cure" clinics, middlemen, upfront-payment schemes)? |
-| B-10 | Can patients check whether a doctor is licensed or a hospital is accredited? How do they check today? |
-| B-11 | Which official registries and accreditation bodies exist, and how easy is it to get their data? |
-| B-12 | What makes a scam convincing, and which warning signs do victims miss? |
-| B-13 | How do online health platforms decide who appears first, and can patients tell paid placements from genuine recommendations? |
-| B-14 | Beyond star ratings, what would show that a specialist centre serves rural patients who are referred to it well? |
-
-### 6.3 Workstream C: Refer and Close the Loop
-
-**C.1 Referral coordination**
-
-| ID | Question |
-|---|---|
-| C-1 | Step by step, how does a referral from primary care to a specialist work today, and where does it break down? |
-| C-2 | What share of referrals never lead to a specialist visit, and why? |
-| C-3 | What information does a specialist need from the referring clinician, and what is usually missing when the referral arrives? |
-| C-4 | When a referral stalls, who is responsible for following up: the patient, the CHW, the clinician, or the specialist? |
-
-**C.2 Getting findings back**
-
-| ID | Question |
-|---|---|
-| C-5 | After a specialist visit, do the referring clinician and the CHW find out what happened? How? |
-| C-6 | Do patients understand what the specialist told them? What gets lost (jargon, language, rushed visits)? |
-| C-7 | How do patients ask follow-up questions once they are back home? |
-| C-8 | Who holds the patient's records, and can the patient take them from one provider to another? |
-| C-9 | When an appointment changes, how do patients without smartphones find out? |
-
-**C.3 Different prescriptions for the same condition**
-
-| ID | Question |
-|---|---|
-| C-10 | How often do patients get different medicines from different doctors for the same condition? |
-| C-11 | Why do prescriptions for the same condition differ (clinical judgment, patient history, which medicines are available locally, brand vs. generic, cost, commercial incentives)? Which of these reasons are explained to patients? |
-| C-12 | How does this affect patients' trust in their treatment, and how often does it lead them to switch doctors? |
-| C-13 | What does switching doctors cost patients (money, time, repeated tests, treatment restarted from scratch)? Does the new doctor know what was prescribed before? |
-
-**C.4 Administrative burden**
-
-| ID | Question |
-|---|---|
-| C-14 | Which paperwork steps take the most time for clinics and patients (referral letters, pre-authorization, scheme claims, registration forms)? |
-| C-15 | Which of these steps make people enter the same information again and again? |
-| C-16 | Where do administrative delays directly delay care? |
-
-### 6.4 Cross-Cutting Questions
-
-| ID | Theme | Question |
+| Account | Role | Use it to |
 |---|---|---|
-| X-1 | Clinical boundaries | Which decisions must always stay with a qualified clinician? |
-| X-2 | Clinical boundaries | Which emergency warning signs must never be delayed by any administrative or navigation step? |
-| X-3 | Privacy and consent | What health information are patients willing to share, with whom (CHW, clinic, specialist), and with what kind of consent? |
-| X-4 | Privacy and consent | Which health-data regulations apply, and how do they differ by country (e.g. HIPAA in the US; DPDP Act 2023 and ABDM in India)? |
-| X-5 | Equity | Who is most likely to be left out: older adults, women, people with low literacy, people without phones, people with disabilities, speakers of minority languages? |
-| X-6 | Equity | How might existing quality signals, such as ratings and reputation, unfairly disadvantage rural or government providers? |
-| X-7 | Problem sizing | How big is each problem today? Candidate baselines: days from first symptom to specialist visit, referral completion rate, share of referrals whose findings return to the clinic, trips per completed visit, out-of-pocket cost compared with household budget. |
-| X-8 | Problem sizing | Which problem is the biggest bottleneck, the one whose resolution would matter most? |
-| X-9 | Context | Which parts of the problem differ by country (schemes, registries, CHW roles, emergency numbers, facility levels), and which are the same everywhere? |
+| `maria@example.com` | Patient | Share a check with your health worker, follow your referral |
+| `chw@example.com` | Community health worker (Ana Torres) | Run checks with Maria, send them to her clinic |
+| `pcp@example.com` | Family doctor (Hometown Family Practice) | Review the clinic inbox, make referrals |
+| `specialist@example.com` | Specialist (County Cardiology Clinic) | Update referrals, send findings back |
+
+### Optional: AI suggestions
+
+The symptom check works offline with built-in rules. For AI suggestions, create a free key at [console.groq.com](https://console.groq.com) and add it to a file called `.env.local` in the project folder:
+
+```
+VITE_GROQ_API_KEY=your-key-here
+```
+
+Restart `npm run dev` afterwards. The key is used from the browser, which is only suitable for local demos.
+
+### Resetting the demo data
+
+The API stores data in `server/data/app.db`, which is created on first start. To start again from the original demo data, stop the server, delete that file, and start it again.
 
 ---
 
-## 7. Coverage Matrix
+## Project structure
 
-### 7.1 Observations → questions
+```
+src/
+  app/            Pages shared by all sections (home, sign-in, layout)
+  features/
+    care/         Care & Cost: symptom check, costs, coverage, help paying
+    find/         Find & Trust: search, ranking, trust checks, trips, provider pages
+    coordinate/   Coordinate: clinic inbox, referrals, findings
+  shared/         Data shapes, shared UI parts, API client
+  data/           Demo data (patients, providers, doctors, programmes, transport)
+server/           API: sign-in, symptom checks, referrals, loop-closure figures
+docs/             Research
+```
 
-| Observation | Questions |
-|---|---|
-| O1: Can't judge urgency or where to go | A-1 to A-8, X-1, X-2 |
-| O2: Specialist services not available locally | B-1, B-2, B-3 |
-| O3: Repeated, long trips | B-3 to B-8 |
-| O4: Fraud, no way to verify providers, paid rankings | B-9 to B-14, X-6 |
-| O5: Full cost unknown and unaffordable | A-11, A-12, A-17, B-7 |
-| O6: Coverage and aid hard to find and use | A-13 to A-16 |
-| O7: Referrals stall | C-1 to C-5, C-8 |
-| O8: Findings not understood or not returned | A-9, C-5 to C-7, C-9 |
-| O9: Different prescriptions for the same condition | C-10 to C-13 |
-| O10: Paperwork delays care | A-16, C-14 to C-16 |
-
-### 7.2 Focus areas → questions
-
-| Focus area | Questions |
-|---|---|
-| Knowing how urgent a symptom is and where to go first | A-1 to A-8 |
-| Specialist care not available locally | B-1 to B-3 |
-| Transportation | B-3 to B-8 |
-| Trust and fraud | B-9 to B-14 |
-| Full cost, insurance coverage, and financial aid | A-11 to A-17 |
-| Referral coordination | C-1 to C-4 |
-| Communication of findings back to the clinic, CHW, and patient | C-5 to C-9 |
-| Different prescriptions for the same condition | C-10 to C-13 |
-| Administrative burden | A-16, C-14 to C-16 |
-| Language and digital access (applies to all) | A-9, A-10 |
+Built with React, Vite, Tailwind CSS, Express, and SQLite.
 
 ---
 
-## 8. Related Documents
+## Limitations and next steps
 
-| Document | Purpose |
+- **Demo data only.** Providers, doctors, insurance plans, programmes, fares, and license records are made up. Eligibility rules are simplified.
+- **One demo region** (United States). Most of what changes by country is kept in the demo data so other regions can be added.
+- **Spanish** covers the home page and Care & Cost. Find & Trust and Coordinate are in English for now.
+- **Travel times** use straight-line distance and a fixed speed for each type of transport.
+- **Coming next:** medicine-change explanations (O9), drafted referral letters and claim forms (O10), an AI draft of the plain-language findings for the specialist to edit, a flag for referrals with no response after a few days, and moving the AI call to the server.
+
+---
+
+## Related documents
+
+| Document | What's in it |
 |---|---|
-| [PLAN.md](PLAN.md) | Proposed solution and build plan, split across the three workstreams |
+| [docs/research.md](docs/research.md) | The full problem research: key facts, scope, observations, stakeholders, and research questions |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | How to work on the code |
+| [TODO.md](TODO.md) | Open tasks |
