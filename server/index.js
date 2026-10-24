@@ -11,6 +11,7 @@ import authRoutes from './routes/authRoutes.js'
 import referralRoutes from './routes/referralRoutes.js'
 import triageRoutes from './routes/triageRoutes.js'
 import loopStatsRoutes from './routes/loopStatsRoutes.js'
+import aiRoutes from './routes/aiRoutes.js'
 
 const app = express()
 const PORT = process.env.PORT || 4000
@@ -23,6 +24,7 @@ app.use('/api/auth', authRoutes)
 app.use('/api/referrals', referralRoutes)
 app.use('/api/triage', triageRoutes)
 app.use('/api/loop-stats', loopStatsRoutes)
+app.use('/api/ai', aiRoutes)
 
 app.listen(PORT, () => {
   console.log(`[server] API listening on http://localhost:${PORT}`)

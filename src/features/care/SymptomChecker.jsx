@@ -20,6 +20,7 @@ import { getExampleSymptoms, careTypeLabel } from './symptomChecker.js'
 import {
   suggestCareTypeLLM,
   hasLlmKey,
+  checkLlmAvailable,
   DURATION_OPTIONS,
   WORSENING_OPTIONS,
 } from './llmSymptomChecker.js'
@@ -48,6 +49,15 @@ export default function SymptomChecker({
   const [worsening, setWorsening] = useState('')
   const [result, setResult] = useState(null)
   const [loading, setLoading] = useState(false)
+  // Whether the server has AI set up: null until it answers, then true/false.
+  const [llmAvailable, setLlmAvailable] = useState(hasLlmKey())
+  useEffect(() => {
+    let active = true
+    checkLlmAvailable().then((ok) => active && setLlmAvailable(ok))
+    return () => {
+      active = false
+    }
+  }, [])
   const abortRef = useRef(null)
 
   const heading =
@@ -85,6 +95,7 @@ export default function SymptomChecker({
         lang: code,
         context: { age: patientAge, duration, worsening },
       })
+      setLlmAvailable(hasLlmKey())
       setResult(r)
       onResult?.(r, query)
     } catch (err) {
@@ -202,7 +213,7 @@ export default function SymptomChecker({
       )}
       {!loading && result && <ResultPanel result={result} />}
 
-      {!hasLlmKey() && (
+      {llmAvailable === false && (
         <p className="mt-3 text-xs text-amber-600">{t('sym.noKey')}</p>
       )}
     </Card>

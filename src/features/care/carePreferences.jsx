@@ -110,7 +110,7 @@ const STRINGS = {
     'sym.notDiagnosis':
       'Guidance only — not a diagnosis. Clinical decisions stay with a qualified clinician.',
     'sym.noKey':
-      'No LLM key found — using the offline keyword helper. Add VITE_GROQ_API_KEY to .env.local for AI suggestions.',
+      'AI suggestions are off, so this uses the built-in rules. To turn AI on, add GROQ_API_KEY to .env.local and restart the server.',
     'sym.errFallback': 'Something went wrong. A general doctor is a safe first step.',
     'sym.howLong': 'How long have you had this?',
     'sym.worse': 'Is it getting worse?',
@@ -264,7 +264,7 @@ const STRINGS = {
     'sym.notDiagnosis':
       'Solo orientación — no es un diagnóstico. Las decisiones clínicas quedan con un profesional calificado.',
     'sym.noKey':
-      'No se encontró clave de LLM — usando el ayudante sin conexión. Agregue VITE_GROQ_API_KEY a .env.local para sugerencias con IA.',
+      'Las sugerencias con IA están desactivadas, así que se usan las reglas integradas. Para activarlas, agregue GROQ_API_KEY a .env.local y reinicie el servidor.',
     'sym.errFallback': 'Algo salió mal. Un médico general es un buen primer paso.',
     'sym.howLong': '¿Desde cuándo lo tiene?',
     'sym.worse': '¿Está empeorando?',

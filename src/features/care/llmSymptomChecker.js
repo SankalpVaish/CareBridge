@@ -22,9 +22,9 @@
  *   6. No API key, or any failure or timeout, falls back to the offline helper
  *      so the demo always works.
  *
- * The API key is read from import.meta.env.VITE_GROQ_API_KEY (see .env.local).
- * In a frontend-only build this key ships in the browser bundle — acceptable
- * for a local demo only. Use a server proxy before any real deployment.
+ * The call goes through our server (/api/ai/suggest), which holds the Groq key
+ * (see server/routes/aiRoutes.js). The key never reaches the browser, and the
+ * browser never calls Groq directly, so Groq's CORS rules don't apply.
  */
 import {
   suggestCareType,
@@ -35,13 +35,42 @@ import {
 import { findUnsafeTerms } from './outputSafety.js'
 import { SPECIALTY_LABELS, URGENCY_LABELS } from '../../shared/models.js'
 
-const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions'
-const MODEL = import.meta.env.VITE_GROQ_MODEL || 'openai/gpt-oss-20b'
-const API_KEY = import.meta.env.VITE_GROQ_API_KEY || ''
+// The AI call goes through our own server (server/routes/aiRoutes.js), which
+// holds the Groq key. The browser never sees the key and never calls Groq.
+const SUGGEST_URL = '/api/ai/suggest'
+const STATUS_URL = '/api/ai/status'
 const MAX_INPUT_CHARS = 500
+/** How long to remember "AI unavailable" before asking the server again. */
+const RECHECK_MS = 30000
 
+let status = { available: null, checkedAt: 0 } // null = not asked yet
+let pending = null
+
+/**
+ * Whether the server has AI set up. Cached; asks again after RECHECK_MS when
+ * the answer was "no", so starting the server later is picked up.
+ * @returns {Promise<boolean>}
+ */
+export function checkLlmAvailable() {
+  const fresh = status.available === true || Date.now() - status.checkedAt < RECHECK_MS
+  if (status.available !== null && fresh) return Promise.resolve(status.available)
+  if (!pending) {
+    pending = fetch(STATUS_URL)
+      .then((r) => (r.ok ? r.json() : { available: false }))
+      .then((d) => Boolean(d.available))
+      .catch(() => false)
+      .then((available) => {
+        status = { available, checkedAt: Date.now() }
+        pending = null
+        return available
+      })
+  }
+  return pending
+}
+
+/** Last known answer: true, false, or null when not checked yet. */
 export function hasLlmKey() {
-  return Boolean(API_KEY)
+  return status.available
 }
 
 /** Answers to the optional follow-up questions, shown in the UI. */
@@ -141,46 +170,43 @@ export async function suggestCareTypeLLM(text, opts = {}) {
     source: 'offline',
   })
 
-  // 2) No key? Use the offline keyword helper.
-  if (!API_KEY) return offline()
+  // 2) No AI on the server (or the server isn't running)? Use the offline helper.
+  if (!(await checkLlmAvailable())) return offline()
 
-  // 3) Ask the LLM.
+  // 3) Ask the LLM, through our server.
   try {
-    const res = await fetch(GROQ_URL, {
+    const res = await fetch(SUGGEST_URL, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${API_KEY}`,
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: MODEL,
-        temperature: 0.2,
-        // gpt-oss reasoning models spend tokens before emitting JSON; give
-        // enough headroom or the API returns json_validate_failed.
-        max_tokens: 800,
-        response_format: { type: 'json_object' },
-        messages: [
-          { role: 'system', content: buildSystemPrompt(lang) },
-          { role: 'user', content: buildUserMessage(trimmed, context) },
-        ],
+        system: buildSystemPrompt(lang),
+        user: buildUserMessage(trimmed, context),
       }),
       signal: opts.signal,
     })
 
     if (!res.ok) {
       const detail = await safeErrorText(res)
-      throw new Error(`Groq ${res.status}: ${detail}`)
+      throw new Error(`AI ${res.status}: ${detail}`)
     }
 
-    const data = await res.json()
-    const content = data?.choices?.[0]?.message?.content
+    const { content } = await res.json()
     const parsed = parseAndValidate(content)
 
-    // Rule 3: never show a diagnosis, medicine, or dose.
-    const unsafe = findUnsafeTerms([parsed.headline, ...parsed.notes])
-    if (unsafe.length > 0) {
-      throw new Error(`unsafe AI wording (${unsafe.join(', ')})`)
+    // Rule 3: never show a diagnosis, medicine, or dose. An unsafe tip is
+    // dropped on its own; an unsafe headline drops the whole answer.
+    const unsafeHeadline = findUnsafeTerms([parsed.headline])
+    if (unsafeHeadline.length > 0) {
+      throw new Error(`unsafe AI headline (${unsafeHeadline.join(', ')})`)
     }
+    const safeNotes = parsed.notes.filter((n) => findUnsafeTerms([n]).length === 0)
+    if (safeNotes.length < parsed.notes.length) {
+      console.warn(
+        '[careLLM] dropped AI tips with unsafe wording:',
+        parsed.notes.filter((n) => !safeNotes.includes(n)).join(' | '),
+      )
+    }
+    parsed.notes = safeNotes
 
     // Defence in depth: if the model flags an emergency, use the local
     // emergency copy for consistent, safe wording.
@@ -268,7 +294,11 @@ function parseAndValidate(content) {
 async function safeErrorText(res) {
   try {
     const body = await res.json()
-    return body?.error?.message || JSON.stringify(body).slice(0, 200)
+    return (
+      body?.error?.message ||
+      (typeof body?.error === 'string' ? body.error : '') ||
+      JSON.stringify(body).slice(0, 200)
+    )
   } catch {
     return res.statusText
   }
