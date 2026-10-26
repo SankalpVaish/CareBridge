@@ -125,12 +125,21 @@ These are the ten observations from our research ([docs/research.md](docs/resear
 
 ## Getting started
 
-**Requirements:** Node.js 18 or later.
+**Requirements:** Node.js 18 or later, and a free [Neon](https://neon.tech) Postgres database.
 
-```bash
-npm install
-npm run dev:all
-```
+1. Create a file called `.env.local` in the project folder with your Neon connection string (this file is never committed):
+
+   ```
+   DATABASE_URL=postgresql://user:password@ep-example.neon.tech/neondb?sslmode=require
+   ```
+
+2. Install, create the tables and demo data, and start:
+
+   ```bash
+   npm install
+   npm run db:setup
+   npm run dev:all
+   ```
 
 Then open **http://localhost:5173**. This starts the web app and the API (port 4000) together. You can also run them separately with `npm run dev` (web app) and `npm run server` (API).
 
@@ -149,17 +158,21 @@ All accounts use the password **`demo1234`**.
 
 ### Optional: AI suggestions
 
-The symptom check works offline with built-in rules. For AI suggestions, create a free key at [console.groq.com](https://console.groq.com) and add it to a file called `.env.local` in the project folder:
+The symptom check works offline with built-in rules. For AI suggestions, create a free key at [console.groq.com](https://console.groq.com) and add it to `.env.local`:
 
 ```
-VITE_GROQ_API_KEY=your-key-here
+GROQ_API_KEY=your-key-here
 ```
 
-Restart `npm run dev` afterwards. The key is used from the browser, which is only suitable for local demos.
+Restart the API afterwards. The key stays on the server and is never sent to the browser.
 
 ### Resetting the demo data
 
-The API stores data in `server/data/app.db`, which is created on first start. To start again from the original demo data, stop the server, delete that file, and start it again.
+Run `npm run db:reset` to wipe the database and restore the original demo data.
+
+### Deploying
+
+The live demo runs on Vercel with the database on Neon. See [CONTRIBUTING.md](CONTRIBUTING.md#deploy-for-judging--vercel--neon) for the steps.
 
 ---
 
@@ -189,7 +202,7 @@ node scripts/check-bundle.mjs     # does the front end build?
 node scripts/check-conflicts.mjs  # any merge-conflict markers left?
 ```
 
-Built with React, Vite, Tailwind CSS, Express, and SQLite.
+Built with React, Vite, Tailwind CSS, Express, and Postgres (Neon), deployed on Vercel.
 
 ---
 

@@ -5,7 +5,7 @@
  * anyone signs in. Returns totals only — no patient data.
  */
 import { Router } from 'express'
-import db from '../db.js'
+import { query } from '../db.js'
 
 const router = Router()
 
@@ -13,17 +13,17 @@ const router = Router()
 const SEEN_OR_LATER = ['seen', 'findings_returned', 'followed_up']
 
 // GET /api/loop-stats → { stats: { [providerId]: { seen, returned, rate } } }
-router.get('/', (_req, res) => {
-  const rows = db
-    .prepare(`
-      SELECT to_provider_id AS providerId,
-             COUNT(*) AS seen,
-             SUM(CASE WHEN findings IS NOT NULL THEN 1 ELSE 0 END) AS returned
-      FROM referrals
-      WHERE status IN (${SEEN_OR_LATER.map(() => '?').join(', ')})
-      GROUP BY to_provider_id
-    `)
-    .all(...SEEN_OR_LATER)
+router.get('/', async (_req, res) => {
+  // ::int because Postgres counts are bigints, which arrive as strings.
+  const rows = await query(
+    `SELECT to_provider_id AS "providerId",
+            COUNT(*)::int AS seen,
+            SUM(CASE WHEN findings IS NOT NULL THEN 1 ELSE 0 END)::int AS returned
+     FROM referrals
+     WHERE status IN (${SEEN_OR_LATER.map((_, i) => `$${i + 1}`).join(', ')})
+     GROUP BY to_provider_id`,
+    SEEN_OR_LATER,
+  )
 
   const stats = {}
   for (const r of rows) {

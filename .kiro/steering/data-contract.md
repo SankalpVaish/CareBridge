@@ -22,9 +22,11 @@ factory. `src/data/mockData.js` holds the one connected demo scenario.
   turned into words only in the UI.
 - **Order of `schemes` matters:** insurance first, then Medicaid, then aid. The
   cost estimator pays in list order.
-- **Providers are mirrored into SQLite** on every boot from `mockData.js`
-  (`server/db.js`). New providers need no SQL.
-- **Migrations add columns, never drop.** Use `addColumn()` in `server/db.js` so
-  existing local databases keep their data.
+- **Providers are copied into the database** from `mockData.js` by
+  `npm run db:setup` (`server/setup.js`). After adding providers, run it again;
+  it only inserts what's missing.
+- **New columns go in `server/setup.js`.** Add them to the `CREATE TABLE`
+  statement, plus an `ALTER TABLE … ADD COLUMN IF NOT EXISTS` line so existing
+  databases get them too.
 - **Referral status order** is `PIPELINE` (in both `referralWorkflow.js` and
   `server/routes/referralRoutes.js`); keep them identical.

@@ -3,16 +3,15 @@
 ## Stack
 - Front end: React 18, Vite 5, Tailwind 3, React Router 6. Plain JS with JSDoc
   types (no TypeScript).
-- API: Express 5 + better-sqlite3 (`server/`), database `server/data/app.db`
-  (created and seeded on first boot; delete it to reset).
+- API: Express 5 (`server/app.js`) + Neon Postgres via `@neondatabase/serverless`
+  (`server/db.js`; every query is async, `$1` placeholders). Connection string in
+  `DATABASE_URL` (`.env.local` locally). Tables and demo data:
+  `npm run db:setup` (`server/setup.js`); clean demo: `npm run db:reset`.
+- Deploy: Vercel. `api/index.js` exports the Express app as a serverless
+  function; `vercel.json` routes `/api/*` to it. `JWT_SECRET` is required there.
 - AI: Groq, called **only from the server** (`/api/ai/suggest`). Calling Groq
   from the browser broke with CORS whenever the Vite port changed, and exposed
   the key.
-
-## Node version: 22 or newer
-better-sqlite3 13 needs Node ≥ 22. On Node 20 it crashes with Windows exit code
-`-1073741819` and **no error message** — nodemon only says "app crashed". If the
-API dies silently, check `node -v` first.
 
 ## Running
 - `npm run dev:all` — API on :4000 and web on :5173 (Vite proxies `/api`).

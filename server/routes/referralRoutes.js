@@ -14,7 +14,7 @@
  */
 import { Router } from 'express'
 import { randomUUID } from 'node:crypto'
-import db from '../db.js'
+import { query, one } from '../db.js'
 import { requireAuth } from '../auth.js'
 // Same rules as the UI (spec: .kiro/specs/medication-change-notes).
 import {
@@ -71,19 +71,20 @@ function toReferral(row, user) {
 
 /** The current user's full row (role, provider_id, patient_id). */
 function currentUser(req) {
-  return db.prepare('SELECT * FROM users WHERE id = ?').get(req.auth.sub)
+  return one('SELECT * FROM users WHERE id = $1', [req.auth.sub])
 }
 
-function chwServesPatient(chwUserId, patientId) {
+async function chwServesPatient(chwUserId, patientId) {
   return Boolean(
-    db
-      .prepare('SELECT 1 FROM chw_patients WHERE chw_user_id = ? AND patient_id = ?')
-      .get(chwUserId, patientId),
+    await one('SELECT 1 FROM chw_patients WHERE chw_user_id = $1 AND patient_id = $2', [
+      chwUserId,
+      patientId,
+    ]),
   )
 }
 
 /** Can this user see this referral row, given their role? */
-function canView(user, row) {
+async function canView(user, row) {
   if (!row || row.is_history) return false
   if (user.role === 'patient') return row.patient_id === user.patient_id
   if (user.role === 'pcp') return row.from_provider_id === user.provider_id
@@ -93,8 +94,8 @@ function canView(user, row) {
 }
 
 /** Only the two clinicians change a referral. */
-function canEdit(user, row) {
-  return (user.role === 'pcp' || user.role === 'specialist') && canView(user, row)
+async function canEdit(user, row) {
+  return (user.role === 'pcp' || user.role === 'specialist') && (await canView(user, row))
 }
 
 function today() {
@@ -106,28 +107,27 @@ function cleanText(value) {
   return text && text.length <= MAX_TEXT ? text : null
 }
 
-function providerName(id) {
-  return db.prepare('SELECT name FROM providers WHERE id = ?').get(id)?.name ?? 'the clinic'
+async function providerName(id) {
+  return (await one('SELECT name FROM providers WHERE id = $1', [id]))?.name ?? 'the clinic'
 }
 
 // GET /api/referrals  — role-filtered list
-router.get('/', (req, res) => {
-  const user = currentUser(req)
+router.get('/', async (req, res) => {
+  const user = await currentUser(req)
   let rows = []
   if (user.role === 'patient') {
-    rows = db.prepare('SELECT * FROM referrals WHERE patient_id = ? AND is_history = 0').all(user.patient_id)
+    rows = await query('SELECT * FROM referrals WHERE patient_id = $1 AND is_history = 0', [user.patient_id])
   } else if (user.role === 'pcp') {
-    rows = db.prepare('SELECT * FROM referrals WHERE from_provider_id = ? AND is_history = 0').all(user.provider_id)
+    rows = await query('SELECT * FROM referrals WHERE from_provider_id = $1 AND is_history = 0', [user.provider_id])
   } else if (user.role === 'specialist') {
-    rows = db.prepare('SELECT * FROM referrals WHERE to_provider_id = ? AND is_history = 0').all(user.provider_id)
+    rows = await query('SELECT * FROM referrals WHERE to_provider_id = $1 AND is_history = 0', [user.provider_id])
   } else if (user.role === 'chw') {
-    rows = db
-      .prepare(`
-        SELECT r.* FROM referrals r
-        JOIN chw_patients c ON c.patient_id = r.patient_id
-        WHERE c.chw_user_id = ? AND r.is_history = 0
-      `)
-      .all(user.id)
+    rows = await query(
+      `SELECT r.* FROM referrals r
+       JOIN chw_patients c ON c.patient_id = r.patient_id
+       WHERE c.chw_user_id = $1 AND r.is_history = 0`,
+      [user.id],
+    )
   }
   res.json({ referrals: rows.map((r) => toReferral(r, user)) })
 })
@@ -136,23 +136,25 @@ router.get('/', (req, res) => {
  * Who may see a patient's medicine history (O9, Req 3.2): the patient, their
  * health workers, their own clinic, and specialists with a referral for them.
  */
-function canSeePatientHistory(user, patientId) {
+async function canSeePatientHistory(user, patientId) {
   if (user.role === 'patient') return user.patient_id === patientId
   if (user.role === 'chw') return chwServesPatient(user.id, patientId)
   if (user.role === 'pcp') {
-    const p = db.prepare('SELECT pcp_provider_id FROM patients WHERE id = ?').get(patientId)
+    const p = await one('SELECT pcp_provider_id FROM patients WHERE id = $1', [patientId])
     if (p?.pcp_provider_id === user.provider_id) return true
     return Boolean(
-      db
-        .prepare('SELECT 1 FROM referrals WHERE patient_id = ? AND from_provider_id = ? AND is_history = 0')
-        .get(patientId, user.provider_id),
+      await one(
+        'SELECT 1 FROM referrals WHERE patient_id = $1 AND from_provider_id = $2 AND is_history = 0',
+        [patientId, user.provider_id],
+      ),
     )
   }
   if (user.role === 'specialist') {
     return Boolean(
-      db
-        .prepare('SELECT 1 FROM referrals WHERE patient_id = ? AND to_provider_id = ? AND is_history = 0')
-        .get(patientId, user.provider_id),
+      await one(
+        'SELECT 1 FROM referrals WHERE patient_id = $1 AND to_provider_id = $2 AND is_history = 0',
+        [patientId, user.provider_id],
+      ),
     )
   }
   return false
@@ -160,19 +162,18 @@ function canSeePatientHistory(user, patientId) {
 
 // GET /api/referrals/patient/:patientId/medication-history — newest first (O9, Req 3.1–3.4)
 // Defined before '/:id' so that route doesn't capture it.
-router.get('/patient/:patientId/medication-history', (req, res) => {
-  const user = currentUser(req)
+router.get('/patient/:patientId/medication-history', async (req, res) => {
+  const user = await currentUser(req)
   const { patientId } = req.params
-  if (!canSeePatientHistory(user, patientId)) {
+  if (!(await canSeePatientHistory(user, patientId))) {
     return res.status(404).json({ error: 'Patient not found' })
   }
-  const rows = db
-    .prepare(`
-      SELECT r.findings, p.name AS provider_name
-      FROM referrals r JOIN providers p ON p.id = r.to_provider_id
-      WHERE r.patient_id = ? AND r.is_history = 0 AND r.findings IS NOT NULL
-    `)
-    .all(patientId)
+  const rows = await query(
+    `SELECT r.findings, p.name AS provider_name
+     FROM referrals r JOIN providers p ON p.id = r.to_provider_id
+     WHERE r.patient_id = $1 AND r.is_history = 0 AND r.findings IS NOT NULL`,
+    [patientId],
+  )
 
   const history = []
   for (const row of rows) {
@@ -186,30 +187,36 @@ router.get('/patient/:patientId/medication-history', (req, res) => {
 })
 
 // GET /api/referrals/:id
-router.get('/:id', (req, res) => {
-  const user = currentUser(req)
-  const row = db.prepare('SELECT * FROM referrals WHERE id = ?').get(req.params.id)
-  if (!canView(user, row)) return res.status(404).json({ error: 'Referral not found' })
+router.get('/:id', async (req, res) => {
+  const user = await currentUser(req)
+  const row = await one('SELECT * FROM referrals WHERE id = $1', [req.params.id])
+  if (!(await canView(user, row))) return res.status(404).json({ error: 'Referral not found' })
   res.json({ referral: toReferral(row, user) })
 })
 
 // POST /api/referrals — the patient's clinician refers a symptom check that a
 // health worker sent to their clinic (O7).
 //   body: { triageSessionId, toProviderId, reason }
-router.post('/', (req, res) => {
-  const user = currentUser(req)
+router.post('/', async (req, res) => {
+  const user = await currentUser(req)
   if (user.role !== 'pcp') {
     return res.status(403).json({ error: 'Only the patient’s clinician can make a referral' })
   }
   const body = req.body ?? {}
-  const session = db.prepare('SELECT * FROM triage_sessions WHERE id = ?').get(body.triageSessionId)
+  const session =
+    typeof body.triageSessionId === 'string'
+      ? await one('SELECT * FROM triage_sessions WHERE id = $1', [body.triageSessionId])
+      : undefined
   if (!session || session.clinic_provider_id !== user.provider_id || !session.sent_to_clinic_at) {
     return res.status(404).json({ error: 'Check not found in your clinic’s inbox' })
   }
   if (session.referral_id) {
     return res.status(409).json({ error: 'This check already has a referral' })
   }
-  const to = db.prepare('SELECT * FROM providers WHERE id = ?').get(body.toProviderId)
+  const to =
+    typeof body.toProviderId === 'string'
+      ? await one('SELECT * FROM providers WHERE id = $1', [body.toProviderId])
+      : undefined
   if (!to || to.id === user.provider_id) {
     return res.status(400).json({ error: 'Choose a specialist to refer to' })
   }
@@ -218,26 +225,27 @@ router.post('/', (req, res) => {
 
   const id = randomUUID()
   const date = today()
-  db.prepare(`
-    INSERT INTO referrals
-      (id, patient_id, from_provider_id, to_provider_id, reason, status, created_date,
-       timeline, missing_info, triage_session_id)
-    VALUES (?, ?, ?, ?, ?, 'requested', ?, ?, '[]', ?)
-  `).run(
-    id,
-    session.patient_id,
-    user.provider_id,
-    to.id,
-    reason,
-    date,
-    JSON.stringify([
-      `${date} — ${user.name} referred to ${to.name} from the health worker’s check`,
-    ]),
-    session.id,
+  await query(
+    `INSERT INTO referrals
+       (id, patient_id, from_provider_id, to_provider_id, reason, status, created_date,
+        timeline, missing_info, triage_session_id)
+     VALUES ($1, $2, $3, $4, $5, 'requested', $6, $7, '[]', $8)`,
+    [
+      id,
+      session.patient_id,
+      user.provider_id,
+      to.id,
+      reason,
+      date,
+      JSON.stringify([
+        `${date} — ${user.name} referred to ${to.name} from the health worker’s check`,
+      ]),
+      session.id,
+    ],
   )
-  db.prepare('UPDATE triage_sessions SET referral_id = ? WHERE id = ?').run(id, session.id)
+  await query('UPDATE triage_sessions SET referral_id = $1 WHERE id = $2', [id, session.id])
 
-  const row = db.prepare('SELECT * FROM referrals WHERE id = ?').get(id)
+  const row = await one('SELECT * FROM referrals WHERE id = $1', [id])
   res.status(201).json({ referral: toReferral(row, user) })
 })
 
@@ -248,11 +256,11 @@ router.post('/', (req, res) => {
 //            'addMissingInfo' { item }
 //            'resolveMissingInfo' { item }
 //            'returnFindings' { forClinician, forPatient }   specialist only (O8)
-router.patch('/:id', (req, res) => {
-  const user = currentUser(req)
-  const row = db.prepare('SELECT * FROM referrals WHERE id = ?').get(req.params.id)
-  if (!canView(user, row)) return res.status(404).json({ error: 'Referral not found' })
-  if (!canEdit(user, row)) return res.status(403).json({ error: 'Only the clinicians can change a referral' })
+router.patch('/:id', async (req, res) => {
+  const user = await currentUser(req)
+  const row = await one('SELECT * FROM referrals WHERE id = $1', [req.params.id])
+  if (!(await canView(user, row))) return res.status(404).json({ error: 'Referral not found' })
+  if (!(await canEdit(user, row))) return res.status(403).json({ error: 'Only the clinicians can change a referral' })
 
   const ref = toReferral(row, user)
   let findings = row.findings ? JSON.parse(row.findings) : null
@@ -324,33 +332,35 @@ router.patch('/:id', (req, res) => {
       )
     }
     if (ref.status === 'seen') ref.status = 'findings_returned'
+    const clinic = await providerName(row.from_provider_id)
     ref.timeline.push(
-      `${today()} — ${user.name} ${first ? 'sent' : 'updated'} findings: to ${providerName(row.from_provider_id)} and the health worker, with a plain-language version for the patient`,
+      `${today()} — ${user.name} ${first ? 'sent' : 'updated'} findings: to ${clinic} and the health worker, with a plain-language version for the patient`,
     )
   } else {
     return res.status(400).json({ error: 'Unknown action' })
   }
 
-  db.prepare(`
-    UPDATE referrals
-    SET status = @status,
-        responsible_party = @responsibleParty,
-        stall_reason = @stallReason,
-        timeline = @timeline,
-        missing_info = @missingInfo,
-        findings = @findings
-    WHERE id = @id
-  `).run({
-    id: ref.id,
-    status: ref.status,
-    responsibleParty: ref.responsibleParty,
-    stallReason: ref.stallReason,
-    timeline: JSON.stringify(ref.timeline),
-    missingInfo: JSON.stringify(ref.missingInfo),
-    findings: findings ? JSON.stringify(findings) : null,
-  })
+  await query(
+    `UPDATE referrals
+     SET status = $1,
+         responsible_party = $2,
+         stall_reason = $3,
+         timeline = $4,
+         missing_info = $5,
+         findings = $6
+     WHERE id = $7`,
+    [
+      ref.status,
+      ref.responsibleParty,
+      ref.stallReason,
+      JSON.stringify(ref.timeline),
+      JSON.stringify(ref.missingInfo),
+      findings ? JSON.stringify(findings) : null,
+      ref.id,
+    ],
+  )
 
-  const updated = db.prepare('SELECT * FROM referrals WHERE id = ?').get(ref.id)
+  const updated = await one('SELECT * FROM referrals WHERE id = $1', [ref.id])
   res.json({ referral: toReferral(updated, user) })
 })
 

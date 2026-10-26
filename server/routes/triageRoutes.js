@@ -9,7 +9,7 @@
  */
 import { Router } from 'express'
 import { randomUUID } from 'node:crypto'
-import db from '../db.js'
+import { query, one } from '../db.js'
 import { requireAuth } from '../auth.js'
 
 const router = Router()
@@ -50,11 +50,11 @@ function toSession(row) {
 }
 
 function currentUser(req) {
-  return db.prepare('SELECT * FROM users WHERE id = ?').get(req.auth.sub)
+  return one('SELECT * FROM users WHERE id = $1', [req.auth.sub])
 }
 
 function getSession(id) {
-  return db.prepare(`${SELECT_SESSION} WHERE t.id = ?`).get(id)
+  return one(`${SELECT_SESSION} WHERE t.id = $1`, [id])
 }
 
 function cleanText(value) {
@@ -87,78 +87,79 @@ function cleanReadings(r) {
   return out
 }
 
-function chwServesPatient(chwUserId, patientId) {
+async function chwServesPatient(chwUserId, patientId) {
   if (typeof patientId !== 'string') return false
   return Boolean(
-    db
-      .prepare('SELECT 1 FROM chw_patients WHERE chw_user_id = ? AND patient_id = ?')
-      .get(chwUserId, patientId),
+    await one('SELECT 1 FROM chw_patients WHERE chw_user_id = $1 AND patient_id = $2', [
+      chwUserId,
+      patientId,
+    ]),
   )
 }
 
 // GET /api/triage — checks shared with or made by this CHW, newest first
-router.get('/', (req, res) => {
-  const user = currentUser(req)
+router.get('/', async (req, res) => {
+  const user = await currentUser(req)
   if (user.role !== 'chw') return res.status(403).json({ error: 'Only health workers can list checks' })
-  const rows = db
-    .prepare(`${SELECT_SESSION} WHERE t.chw_user_id = ? ORDER BY t.updated_at DESC`)
-    .all(user.id)
+  const rows = await query(`${SELECT_SESSION} WHERE t.chw_user_id = $1 ORDER BY t.updated_at DESC`, [
+    user.id,
+  ])
   res.json({ sessions: rows.map(toSession) })
 })
 
 // GET /api/triage/inbox — checks health workers sent to this clinician's clinic (O7)
-router.get('/inbox', (req, res) => {
-  const user = currentUser(req)
+router.get('/inbox', async (req, res) => {
+  const user = await currentUser(req)
   if (user.role !== 'pcp') return res.status(403).json({ error: 'Only clinic staff have an inbox' })
-  const rows = db
-    .prepare(`${SELECT_SESSION} WHERE t.clinic_provider_id = ? AND t.sent_to_clinic_at IS NOT NULL ORDER BY t.sent_to_clinic_at DESC`)
-    .all(user.provider_id)
+  const rows = await query(
+    `${SELECT_SESSION} WHERE t.clinic_provider_id = $1 AND t.sent_to_clinic_at IS NOT NULL ORDER BY t.sent_to_clinic_at DESC`,
+    [user.provider_id],
+  )
   res.json({ sessions: rows.map(toSession) })
 })
 
 // POST /api/triage/:id/send — CHW sends a saved check to the patient's own clinic (O7)
-router.post('/:id/send', (req, res) => {
-  const user = currentUser(req)
-  const row = getSession(req.params.id)
+router.post('/:id/send', async (req, res) => {
+  const user = await currentUser(req)
+  const row = await getSession(req.params.id)
   if (user.role !== 'chw' || !row || row.chw_user_id !== user.id) {
     return res.status(404).json({ error: 'Check not found' })
   }
   if (row.status !== 'reviewed') {
     return res.status(400).json({ error: 'Save the check first' })
   }
-  const clinic = db.prepare('SELECT pcp_provider_id FROM patients WHERE id = ?').get(row.patient_id)
+  const clinic = await one('SELECT pcp_provider_id FROM patients WHERE id = $1', [row.patient_id])
   if (!clinic?.pcp_provider_id) {
     return res.status(400).json({ error: 'This patient has no clinic on record yet' })
   }
   if (!row.sent_to_clinic_at) {
-    db.prepare('UPDATE triage_sessions SET sent_to_clinic_at = ?, clinic_provider_id = ? WHERE id = ?').run(
+    await query('UPDATE triage_sessions SET sent_to_clinic_at = $1, clinic_provider_id = $2 WHERE id = $3', [
       new Date().toISOString(),
       clinic.pcp_provider_id,
       row.id,
-    )
+    ])
   }
-  res.json({ session: toSession(getSession(row.id)) })
+  res.json({ session: toSession(await getSession(row.id)) })
 })
 
 // GET /api/triage/patients — patients this CHW looks after
-router.get('/patients', (req, res) => {
-  const user = currentUser(req)
+router.get('/patients', async (req, res) => {
+  const user = await currentUser(req)
   if (user.role !== 'chw') return res.status(403).json({ error: 'Only health workers have patients' })
-  const patients = db
-    .prepare(`
-      SELECT p.id, p.name, p.location FROM chw_patients c
-      JOIN patients p ON p.id = c.patient_id
-      WHERE c.chw_user_id = ? ORDER BY p.name
-    `)
-    .all(user.id)
+  const patients = await query(
+    `SELECT p.id, p.name, p.location FROM chw_patients c
+     JOIN patients p ON p.id = c.patient_id
+     WHERE c.chw_user_id = $1 ORDER BY p.name`,
+    [user.id],
+  )
   res.json({ patients })
 })
 
 // POST /api/triage
 //   patient: { symptomText, result }                       → shares with their CHW
 //   chw:     { patientId, symptomText, result, readings, consent }
-router.post('/', (req, res) => {
-  const user = currentUser(req)
+router.post('/', async (req, res) => {
+  const user = await currentUser(req)
   const body = req.body ?? {}
   const symptomText = cleanText(body.symptomText)
   const result = cleanResult(body.result)
@@ -179,9 +180,9 @@ router.post('/', (req, res) => {
     if (!user.patient_id) {
       return res.status(400).json({ error: 'Your account is not linked to a patient record yet' })
     }
-    const link = db
-      .prepare('SELECT chw_user_id FROM chw_patients WHERE patient_id = ? LIMIT 1')
-      .get(user.patient_id)
+    const link = await one('SELECT chw_user_id FROM chw_patients WHERE patient_id = $1 LIMIT 1', [
+      user.patient_id,
+    ])
     if (!link) {
       return res.status(400).json({ error: 'No community health worker is linked to you yet' })
     }
@@ -194,7 +195,7 @@ router.post('/', (req, res) => {
       consent_recorded: 1, // the patient chose to share
     })
   } else if (user.role === 'chw') {
-    if (!chwServesPatient(user.id, body.patientId)) {
+    if (!(await chwServesPatient(user.id, body.patientId))) {
       return res.status(404).json({ error: 'Patient not found in your list' })
     }
     if (body.consent !== true) {
@@ -212,22 +213,33 @@ router.post('/', (req, res) => {
     return res.status(403).json({ error: 'Only patients and health workers can save checks' })
   }
 
-  db.prepare(`
-    INSERT INTO triage_sessions
-      (id, patient_id, chw_user_id, started_in, status, symptom_text, result,
-       readings, consent_recorded, created_at, updated_at)
-    VALUES
-      (@id, @patient_id, @chw_user_id, @started_in, @status, @symptom_text, @result,
-       @readings, @consent_recorded, @created_at, @updated_at)
-  `).run(session)
+  await query(
+    `INSERT INTO triage_sessions
+       (id, patient_id, chw_user_id, started_in, status, symptom_text, result,
+        readings, consent_recorded, created_at, updated_at)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+    [
+      session.id,
+      session.patient_id,
+      session.chw_user_id,
+      session.started_in,
+      session.status,
+      session.symptom_text,
+      session.result,
+      session.readings,
+      session.consent_recorded,
+      session.created_at,
+      session.updated_at,
+    ],
+  )
 
-  res.status(201).json({ session: toSession(getSession(session.id)) })
+  res.status(201).json({ session: toSession(await getSession(session.id)) })
 })
 
 // PATCH /api/triage/:id — CHW continues a check: { symptomText, result, readings }
-router.patch('/:id', (req, res) => {
-  const user = currentUser(req)
-  const row = getSession(req.params.id)
+router.patch('/:id', async (req, res) => {
+  const user = await currentUser(req)
+  const row = await getSession(req.params.id)
   if (user.role !== 'chw' || !row || row.chw_user_id !== user.id) {
     return res.status(404).json({ error: 'Check not found' })
   }
@@ -239,19 +251,20 @@ router.patch('/:id', (req, res) => {
     return res.status(400).json({ error: 'symptomText and a valid result are required' })
   }
 
-  db.prepare(`
-    UPDATE triage_sessions
-    SET symptom_text = ?, result = ?, readings = ?, status = 'reviewed', updated_at = ?
-    WHERE id = ?
-  `).run(
-    symptomText,
-    JSON.stringify(result),
-    JSON.stringify(cleanReadings(body.readings)),
-    new Date().toISOString(),
-    row.id,
+  await query(
+    `UPDATE triage_sessions
+     SET symptom_text = $1, result = $2, readings = $3, status = 'reviewed', updated_at = $4
+     WHERE id = $5`,
+    [
+      symptomText,
+      JSON.stringify(result),
+      JSON.stringify(cleanReadings(body.readings)),
+      new Date().toISOString(),
+      row.id,
+    ],
   )
 
-  res.json({ session: toSession(getSession(row.id)) })
+  res.json({ session: toSession(await getSession(row.id)) })
 })
 
 export default router

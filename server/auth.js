@@ -11,6 +11,10 @@
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 
+// The fallback is in the public repo, so anyone could forge logins with it.
+if (process.env.VERCEL && !process.env.JWT_SECRET) {
+  throw new Error('Set JWT_SECRET in the Vercel project settings.')
+}
 const JWT_SECRET =
   process.env.JWT_SECRET || 'dev-only-insecure-secret-change-in-production'
 const TOKEN_TTL = '7d'
